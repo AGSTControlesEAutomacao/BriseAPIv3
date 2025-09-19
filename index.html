@@ -69,6 +69,52 @@
             border-radius: 2px;
         }
 
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+            margin-right: 40px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #007bff;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
         .logo-container {
             display: flex;
             justify-content: center;
@@ -95,10 +141,14 @@
         <div class="left-section">
             <img src="logo.svg" alt="Logo da API REST Brise">
             <div class="nav-links">
-                <a href="#" onclick="loadPage('redoc/index.html?spec=../brise.cloud.openapi.yaml', this)">Cloud API</a>
-                <a href="#" onclick="loadPage('redoc/index.html?spec=../brise.lan.openapi.yaml', this)">LAN API</a>
+                <a href="#" onclick="loadPage('cloud', this)">Cloud API</a>
+                <a href="#" onclick="loadPage('lan', this)">LAN API</a>
             </div>
         </div>
+        <label class="switch">
+            <input type="checkbox" id="toggleBtn" checked>
+            <span class="slider" title="Ativar Redoc"></span>
+        </label>
     </div>
 
     <div id="logo" class="logo-container">
@@ -108,22 +158,56 @@
     <iframe id="content" class="content" style="display:none;"></iframe>
 
     <script>
-        function loadPage(page, clickedElement) {
-            // Remove a classe "active-link" de todos os links
+        let activeApiType = '';
+        let activeLink = null;
+
+        function loadPage(apiType, clickedElement) {
+            document.getElementById("logo").style.display = "none";
+            document.getElementById("content").style.display = "block";
+
             const navLinks = document.querySelectorAll('.nav-links a');
             navLinks.forEach(link => {
                 link.classList.remove('active-link');
             });
 
-            // Adiciona a classe "active-link" ao link clicado
             clickedElement.classList.add('active-link');
 
-            // Esconde a logo inicial e mostra o iframe com o conteudo
-            document.getElementById("logo").style.display = "none";
-            const iframe = document.getElementById("content");
-            iframe.style.display = "block";
-            iframe.src = page;
+            activeApiType = apiType;
+            activeLink = clickedElement;
+
+            updateIframeSource();
         }
+
+        function updateIframeSource() {
+            if (!activeLink) {
+                return;
+            }
+
+            const toggleBtn = document.getElementById('toggleBtn');
+            const isRedoc = toggleBtn.checked;
+
+            let pageUrl;
+            if (isRedoc) {
+                if (activeApiType === 'cloud') {
+                    pageUrl = 'redoc/index.html?spec=../brise.cloud.openapi.yaml';
+                } else if (activeApiType === 'lan') {
+                    pageUrl = 'redoc/index.html?spec=../brise.lan.openapi.yaml';
+                }
+            } else {
+                if (activeApiType === 'cloud') {
+                    pageUrl = 'rapidoc/index.html?spec=../brise.cloud.openapi.yaml';
+                } else if (activeApiType === 'lan') {
+                    pageUrl = 'rapidoc/index.html?spec=../brise.lan.openapi.yaml';
+                }
+            }
+
+            const iframe = document.getElementById("content");
+            iframe.src = pageUrl;
+        }
+
+        document.getElementById('toggleBtn').addEventListener('change', function () {
+            updateIframeSource();
+        });
     </script>
 </body>
 

@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Brise API - Rapidoc</title>
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="../favicon.ico" />
+    <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
+    <script src="https://unpkg.com/rapipdf/dist/rapipdf-min.js"></script>
+</head>
+
+<body>
+    <script>
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        const specUrl = getUrlParameter('spec') || '../brise.cloud.openapi.yaml';
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelector('rapi-doc').setAttribute('spec-url', specUrl);
+            document.querySelector('rapi-pdf').setAttribute('spec-url', specUrl);
+        });
+    </script>
+
+    <rapi-doc theme="light" allow-spec-url-load="false" allow-spec-file-load="false" primary-color="#2d87e2" show-header="false">
+        <p slot="footer" style="margin:10px;">
+            <rapi-pdf style="width:100%; height:40px; font-size:18px;" button-bg="#2d87e2">
+            </rapi-pdf>
+        </p>
+    </rapi-doc>
+</body>
+
+</html>
