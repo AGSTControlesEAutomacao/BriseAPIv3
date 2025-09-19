@@ -30,7 +30,7 @@ info:
 
     > ⚠️ **Importante**: A Brise Local API opera apenas dentro da rede local. O endereço IP do dispositivo ou gateway Brise deve ser conhecido e acessível pela aplicação cliente.
 
-    Para integrações híbridas, combine esta API com a **Brise Remoto API** e mantenha o controle local com supervisão remota.
+    Para integrações híbridas, combine esta API com a **Brise Cloud API** e mantenha o controle local com supervisão remota.
 
 servers:
   - url: "http://{device-ip}/api/v3"
