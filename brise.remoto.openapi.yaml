@@ -1,0 +1,39 @@
+openapi: 3.0.4
+info:
+  title: Brise Cloud API
+  version: 3.0.0
+  contact:
+    name: AGST
+    email: ped@agst.com.br
+    url: https://www.agst.com.br
+  description: |
+    A **Brise Cloud API** é a interface oficial para integração com o sistema Brise por meio do serviço remoto.  
+    Ela permite que aplicações de automação se comuniquem com dispositivos Brise conectados ao serviço remoto **Brise Cloud**, facilitando a integração com sistemas de supervisão, gestão predial, automação residencial e industrial.
+
+    Todas as requisições e respostas utilizam o formato **JSON**, garantindo interoperabilidade e facilidade de processamento em diferentes plataformas.
+
+    ### Funcionalidades principais
+
+    - **Consultar e controlar dispositivos Brise** conectados ao serviço remoto  
+    - **Gerenciar grupos de dispositivos** e suas configurações centralizadas  
+    - **Monitorar status em tempo real** e métricas operacionais  
+    - **Integrar de forma unificada** com sistemas de terceiros via RESTful  
+
+    As chamadas são baseadas em métodos **RESTful**, seguindo boas práticas de design de APIs, com autenticação segura e respostas padronizadas para facilitar o desenvolvimento e a manutenção.
+
+    ### Brise Local API
+
+    Além da solução remota, a **Brise Local API** oferece comunicação direta com os dispositivos Brise dentro da mesma rede local, sem dependência de conexão com a internet.
+
+    Essa API é ideal para cenários onde:
+    - A conectividade com a internet não é confiável ou aceitável.
+    - Baixa latência é essencial.
+    - O controle local é prioritário por questões de segurança ou desempenho.
+
+servers:
+  - url: "https://brise.agst.com.br/api/v3"
+    description: Servidor de Produção
+  - url: "https://intranet.agst.com.br:8090/api/v3"
+    description: Servidor local de desenvolvimento
+
+paths: {}
