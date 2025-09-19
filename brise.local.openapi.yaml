@@ -1,0 +1,39 @@
+openapi: 3.0.4
+info:
+  title: Brise LAN API
+  version: 3.0.0
+  contact:
+    name: AGST
+    email: ped@agst.com.br
+    url: https://www.agst.com.br
+  description: |
+    A **Brise LAN API** é a interface para comunicação direta com dispositivos Brise dentro de uma mesma rede local, sem necessidade de conexão com a internet.  
+    Projetada para ambientes onde a latência, confiabilidade ou segurança são críticas, ela permite o controle e monitoramento local de dispositivos Brise por meio de chamadas HTTP/HTTPS diretamente ao dispositivo na mesma rede.
+
+    Todos os dados são trocados no formato **JSON**, seguindo padrões RESTful, facilitando a integração com sistemas de automação residencial, industrial e predial que operam offline ou exigem resposta em tempo real.
+
+    ### Funcionalidades Principais
+
+    - **Comunicação direta com dispositivos Brise** na rede local  
+    - **Controle imediato** de operações  
+    - **Leitura de status e métricas em tempo real** sem intermediários  
+    - **Operação independente do serviço** — ideal para ambientes isolados ou restritos  
+
+    A API utiliza autenticação simples e não depende de serviços externos, garantindo disponibilidade contínua mesmo sem acesso à internet.
+
+    ### Quando usar a Brise LAN API?
+
+    Esta API é recomendada nos seguintes cenários:
+    - Falhas frequentes ou ausência de conectividade com a internet.
+    - Necessidade de baixa latência no controle (ex: automação crítica).
+    - Políticas de segurança que proíbem ou restringem tráfego via internet.
+
+    > ⚠️ **Importante**: A Brise Local API opera apenas dentro da rede local. O endereço IP do dispositivo ou gateway Brise deve ser conhecido e acessível pela aplicação cliente.
+
+    Para integrações híbridas, combine esta API com a **Brise Remoto API** e mantenha o controle local com supervisão remota.
+
+servers:
+  - url: "http://{device-ip}/api/v3"
+    description: Dispositivo Brise na rede local (substitua {device-ip})
+
+paths: {}
