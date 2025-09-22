@@ -36,4 +36,278 @@ servers:
   - url: "https://intranet.agst.com.br:8090/api/v3"
     description: Servidor local de desenvolvimento
 
-paths: {}
+tags:
+  - name: Usuários
+    description: |
+      Esta categoria abrange o gerenciamento de contas no sistema Brise Cloud. Ela permite criar novos usuários, enviar tokens de ativação, ativar contas pendentes e solicitar o reenvio de um novo token caso o anterior tenha expirado ou seja perdido. O objetivo é fornecer um processo seguro e consistente para que os usuários completem sua ativação e possam acessar os recursos do sistema.
+
+      > ⚠️ **Nota importante:**  
+      > Todos os endpoints deste grupo não requerem autenticação, pois são necessários para a criação da conta. A princípio, serão usados apenas por sistemas internos, integrando com o App, e **não serão divulgados na API pública**.
+
+paths:
+  /users:
+    post:
+      tags:
+        - Usuários
+      summary: Criar usuário
+      description: |
+        Registra um novo usuário no sistema Brise Cloud.  
+        Por padrão, a conta é criada com status `pending`.
+
+        > ℹ️ **Observações:**  
+        >- Um token de ativação é enviado para o e-mail informado no cadastro.  
+        >- O token deve ser utilizado em outro endpoint para ativar a conta.  
+        >- Contas corporativas devem ser criadas por administradores de organizações.
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - full_name
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Endereço de e-mail do usuário
+                full_name:
+                  type: string
+                  description: Nome completo do usuário
+                password:
+                  type: string
+                  format: password
+                  description: Senha do usuário (mínimo 8 caracteres)
+            examples:
+                createUserRequest:
+                  summary: Exemplo de requisição para criação de usuário
+                  value:
+                    email: "joao.silva@exemplo.com"
+                    full_name: "João Silva"
+                    password: "senhaSegura123"
+      responses:
+        '201':
+          description: Usuário criado com sucesso.
+          headers:
+            Location:
+              description: URL para o recurso do usuário criado
+              schema:
+                type: string
+                example: /users/101
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 101
+                  status:
+                    type: string
+                    enum: [pending, active, blocked]
+                    example: pending
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2025-09-09T10:00:00Z"
+        '400':
+          description: Requisição inválida. Verifique os dados enviados.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_REQUEST
+                  message:
+                    type: string
+                    example: "Os campos obrigatórios 'email' e 'password' devem ser preenchidos."
+                  details:
+                    type: object
+                    additionalProperties: true
+                    example:
+                      email: "Formato inválido"
+                      password: "Mínimo 8 caracteres"
+        '409':
+          description: Conflito. O e-mail já está em uso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: EMAIL_ALREADY_IN_USE
+                  message:
+                    type: string
+                    example: "O e-mail informado já está em uso."
+
+  /users/activate:
+    post:
+      tags:
+        - Usuários
+      summary: Ativar usuário
+      description: |
+        Ativa uma conta de usuário previamente criada no sistema Brise Cloud usando um token de ativação enviado por e-mail.
+
+        > ℹ️ **Observações:**  
+        > - O token de ativação expira após 7 dias.  
+        > - A qualquer momento, antes ou depois de expirar, pode ser solicitado o reenvio do token através de outro endpoint.  
+        > - Após a ativação, o status do usuário passa de `pending` para `active`.
+      operationId: activateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - token
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Endereço de e-mail do usuário a ser ativado
+                token:
+                  type: string
+                  description: Código de verificação recebido por e-mail
+            examples:
+                activateUserRequest:
+                  summary: Exemplo de requisição para ativação de usuário
+                  value:
+                    email: "joao.silva@exemplo.com"
+                    token: "123456"
+      responses:
+        '200':
+          description: Usuário ativado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 101
+                  status:
+                    type: string
+                    enum: [pending, active, blocked]
+                    example: active
+                  updated_at:
+                    type: string
+                    format: date-time
+                    example: "2025-09-22T14:00:00Z"
+        '400':
+          description: Requisição inválida. Token ou e-mail ausente ou incorreto.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_REQUEST
+                  message:
+                    type: string
+                    example: "O token de ativação ou e-mail não foram informados corretamente."
+        '404':
+          description: Usuário não encontrado ou token inválido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+                  message:
+                    type: string
+                    example: "Não foi possível localizar um usuário com o e-mail e token informados."
+        '409':
+          description: Usuário já está ativo.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_ALREADY_ACTIVE
+                  message:
+                    type: string
+                    example: "O usuário já está ativo."
+
+  /users/resend-activation:
+    post:
+      tags:
+        - Usuários
+      summary: Reenviar token de ativação
+      description: |
+        Solicita o reenvio de um **novo token de ativação** para um usuário cuja conta ainda não foi ativada.
+
+        > ℹ️ **Observações:**  
+        > - Um **novo token** será enviado para o e-mail informado.  
+        > - O token antigo é invalidado assim que o novo é gerado.  
+        > - Pode ser solicitado a qualquer momento, mesmo que o token anterior tenha expirado.  
+        > - Após receber o novo token, o usuário deve utilizá-lo para ativar sua conta através do endpoint `/users/activate`.
+      operationId: resendActivationToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Endereço de e-mail do usuário que receberá o novo token
+            examples:
+              resendActivationRequest:
+                summary: Exemplo de requisição para reenvio de token
+                value:
+                  email: "joao.silva@exemplo.com"
+      responses:
+        '200':
+          description: Novo token de ativação enviado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Novo token de ativação enviado com sucesso para joao.silva@exemplo.com"
+        '400':
+          description: Requisição inválida. E-mail ausente ou formato incorreto.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_REQUEST
+                  message:
+                    type: string
+                    example: "O campo 'email' deve ser preenchido corretamente."
+        '404':
+          description: Usuário não encontrado ou já ativo.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+                  message:
+                    type: string
+                    example: "Não foi possível localizar um usuário com o e-mail informado ou o usuário já está ativo."
+
