@@ -91,12 +91,6 @@ paths:
       responses:
         '201':
           description: Usuário criado com sucesso.
-          headers:
-            Location:
-              description: URL para o recurso do usuário criado
-              schema:
-                type: string
-                example: /users/101
           content:
             application/json:
               schema:
@@ -123,15 +117,6 @@ paths:
                   error:
                     type: string
                     example: INVALID_REQUEST
-                  message:
-                    type: string
-                    example: "Os campos obrigatórios 'email' e 'password' devem ser preenchidos."
-                  details:
-                    type: object
-                    additionalProperties: true
-                    example:
-                      email: "Formato inválido"
-                      password: "Mínimo 8 caracteres"
         '409':
           description: Conflito. O e-mail já está em uso.
           content:
@@ -142,9 +127,6 @@ paths:
                   error:
                     type: string
                     example: EMAIL_ALREADY_IN_USE
-                  message:
-                    type: string
-                    example: "O e-mail informado já está em uso."
 
   /users/activate:
     post:
@@ -211,9 +193,6 @@ paths:
                   error:
                     type: string
                     example: INVALID_REQUEST
-                  message:
-                    type: string
-                    example: "O token de ativação ou e-mail não foram informados corretamente."
         '404':
           description: Usuário não encontrado ou token inválido.
           content:
@@ -224,9 +203,6 @@ paths:
                   error:
                     type: string
                     example: USER_NOT_FOUND
-                  message:
-                    type: string
-                    example: "Não foi possível localizar um usuário com o e-mail e token informados."
         '409':
           description: Usuário já está ativo.
           content:
@@ -237,9 +213,6 @@ paths:
                   error:
                     type: string
                     example: USER_ALREADY_ACTIVE
-                  message:
-                    type: string
-                    example: "O usuário já está ativo."
 
   /users/resend-activation:
     post:
@@ -294,9 +267,6 @@ paths:
                   error:
                     type: string
                     example: INVALID_REQUEST
-                  message:
-                    type: string
-                    example: "O campo 'email' deve ser preenchido corretamente."
         '404':
           description: Usuário não encontrado ou já ativo.
           content:
@@ -307,7 +277,3 @@ paths:
                   error:
                     type: string
                     example: USER_NOT_FOUND
-                  message:
-                    type: string
-                    example: "Não foi possível localizar um usuário com o e-mail informado ou o usuário já está ativo."
-
