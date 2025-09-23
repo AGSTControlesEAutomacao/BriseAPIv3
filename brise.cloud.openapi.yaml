@@ -60,6 +60,7 @@ paths:
         >- Contas corporativas devem ser criadas por administradores de organizações.
       operationId: createUser
       requestBody:
+        description: Dados do usuário a ser criado
         required: true
         content:
           application/json:
@@ -102,6 +103,7 @@ paths:
                   status:
                     type: string
                     enum: [pending, active, blocked]
+                    default: pending
                     example: pending
                   created_at:
                     type: string
@@ -142,6 +144,7 @@ paths:
         > - Após a ativação, o status do usuário passa de `pending` para `active`.
       operationId: activateUser
       requestBody:
+        description: Dados necessários para ativação do usuário
         required: true
         content:
           application/json:
@@ -229,6 +232,7 @@ paths:
         > - Após receber o novo token, o usuário deve utilizá-lo para ativar sua conta através do endpoint `/users/activate`.
       operationId: resendActivationToken
       requestBody:
+        description: E-mail do usuário que receberá o novo token de ativação
         required: true
         content:
           application/json:
@@ -293,6 +297,7 @@ paths:
         > - Usuários com status `blocked` não podem realizar login e receberão uma mensagem de erro apropriada.
       operationId: loginUser
       requestBody:
+        description: Credenciais do usuário
         required: true
         content:
           application/json:
@@ -335,7 +340,8 @@ paths:
                   accessExpires:
                     type: integer
                     description: Tempo em segundos para expiração do accessToken
-                    example: 3600
+                    default: 172800
+                    example: 172800
                   token_type:
                     type: string
                     description: Tipo do token emitido
