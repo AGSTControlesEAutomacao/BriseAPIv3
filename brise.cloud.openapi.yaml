@@ -277,3 +277,86 @@ paths:
                   error:
                     type: string
                     example: USER_NOT_FOUND
+
+  /users/login:
+    post:
+      tags:
+        - Usuários
+      summary: Autenticar usuário
+      description: |
+        Permite que um usuário autenticado acesse o sistema Brise Cloud utilizando e-mail e senha. 
+        Retorna um token de sessão (JWT ou outro esquema de autenticação) que deve ser utilizado nas requisições subsequentes aos endpoints que requerem autenticação.
+
+        > ℹ️ **Observações:**  
+        > - Apenas usuários com status `active` podem se autenticar.  
+        > - Usuários com status `pending` iniciaram automaticamente o processo de ativação, e um código de ativação é enviado para o e-mail cadastrado.  
+        > - Usuários com status `blocked` não podem realizar login e receberão uma mensagem de erro apropriada.
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Endereço de e-mail do usuário
+                password:
+                  type: string
+                  format: password
+                  description: Senha do usuário
+            examples:
+                loginRequest:
+                  summary: Exemplo de requisição para autenticação de usuário
+                  value:
+                    email: "joao.silva@exemplo.com"
+                    password: "senhaSegura123"
+      responses:
+        '200':
+          description: Login realizado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: Token de acesso para autenticação nos endpoints protegidos
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  refreshToken:
+                    type: string
+                    description: Token utilizado para renovar o accessToken
+                    example: "dGhpc2lzc2Ftb3JlZnJlc2h0b2tlbg=="
+                  accessExpires:
+                    type: integer
+                    description: Tempo em segundos para expiração do accessToken
+                    example: 3600
+                  token_type:
+                    type: string
+                    description: Tipo do token emitido
+                    example: "Bearer"
+        '400':
+          description: Requisição inválida. Campos obrigatórios ausentes ou formato incorreto.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_REQUEST
+        '401':
+          description: Credenciais inválidas ou usuário não ativo.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_CREDENTIALS
