@@ -360,3 +360,30 @@ paths:
                   error:
                     type: string
                     example: INVALID_CREDENTIALS
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        O token de acesso JWT deve ser enviado no cabeçalho `Authorization` da sua requisição.
+        
+        **Formato:** `Authorization: Bearer <seu_token>`
+
+    oauth2:
+      type: oauth2
+      description: |
+        Este esquema de segurança segue o padrão **OAuth 2.0**, permitindo que aplicativos de terceiros acessem recursos em nome do usuário sem expor a senha diretamente.  
+
+        O fluxo `authorizationCode` é o mais recomendado, pois garante maior segurança ao usuário e ao cliente.  
+
+        Para solicitar credenciais OAuth 2.0, registre seu aplicativo no [Portal de Desenvolvedores da Brise Cloud](https://brise.agst.com.br/developers) e obtenha um `client_id` e um `client_secret`.  
+
+        Após obter suas credenciais, utilize o fluxo de autorização para gerar um *access token* válido.
+
+      flows:
+        authorizationCode:
+          authorizationUrl: "https://brise.agst.com.br/api/v3/oauth/authorize"
+          tokenUrl: "https://brise.agst.com.br/api/v3/oauth/token"
