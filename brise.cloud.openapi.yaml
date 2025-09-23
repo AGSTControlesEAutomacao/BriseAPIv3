@@ -345,7 +345,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: Credenciais inválidas ou usuário não ativo.
+          description: |
+            Credenciais inválidas ou usuário não ativo.  
+            Possíveis causas:
+            - `INVALID_CREDENTIALS`: senha ou e-mail incorretos
+            - `USER_BLOCKED`: usuário bloqueado
+            - `USER_PENDING`: usuário ainda não ativado
           content:
             application/json:
               schema:
@@ -389,7 +394,11 @@ paths:
                     format: date-time
                     example: 2025-09-23T14:00:00Z
         '401':
-          description: Token inválido ou expirado.
+          description: |
+            Token inválido ou expirado. Possíveis causas:
+            - `INVALID_TOKEN`: token inválido
+            - `EXPIRED_TOKEN`: token expirado
+            - `USER_NOT_FOUND`: usuário não encontrado
           content:
             application/json:
               schema:
