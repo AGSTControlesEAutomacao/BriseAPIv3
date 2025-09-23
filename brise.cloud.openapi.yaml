@@ -114,11 +114,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: INVALID_REQUEST
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
           description: Conflito. O e-mail já está em uso.
           content:
@@ -191,11 +187,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: INVALID_REQUEST
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Usuário não encontrado ou token inválido.
           content:
@@ -351,11 +343,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: INVALID_REQUEST
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Credenciais inválidas ou usuário não ativo.
           content:
@@ -391,7 +379,15 @@ paths:
       responses:
         '200':
           description: Token válido.
-          content: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  expires_at:
+                    type: string
+                    format: date-time
+                    example: 2025-09-23T14:00:00Z
         '401':
           description: Token inválido ou expirado.
           content:
@@ -429,3 +425,11 @@ components:
         authorizationCode:
           authorizationUrl: "https://brise.agst.com.br/api/v3/oauth/authorize"
           tokenUrl: "https://brise.agst.com.br/api/v3/oauth/token"
+  
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: INVALID_REQUEST
