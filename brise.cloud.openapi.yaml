@@ -42,8 +42,12 @@ tags:
       Esta categoria abrange o gerenciamento de contas no sistema Brise Cloud. Ela permite criar novos usuários, enviar tokens de ativação, ativar contas pendentes e solicitar o reenvio de um novo token caso o anterior tenha expirado ou seja perdido. O objetivo é fornecer um processo seguro e consistente para que os usuários completem sua ativação e possam acessar os recursos do sistema.
 
       > ⚠️ **Nota importante:**  
-      > Todos os endpoints deste grupo não requerem autenticação, pois são necessários para a criação da conta. A princípio, serão usados apenas por sistemas internos, integrando com o App, e **não serão divulgados na API pública**.
-
+      > Muitos dos endpoints deste grupo não requerem autenticação, pois são necessários para a criação da conta. A princípio, serão usados apenas por sistemas internos, integrando com o App, e **não serão divulgados na API pública**.
+  - name: Corporações
+    description: |
+      Agrupa os conjuntos de endpoints responsáveis pelo gerenciamento de corporações no sistema.  
+      
+      Permite criar, consultar e manter informações das corporações, bem como gerenciar o vínculo entre usuários e suas respectivas organizações.  
 paths:
   /users:
     post:
@@ -399,6 +403,94 @@ paths:
             - `INVALID_TOKEN`: token inválido
             - `EXPIRED_TOKEN`: token expirado
             - `USER_NOT_FOUND`: usuário não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_TOKEN
+
+  /corporations:
+    post:
+      tags:
+        - Corporações
+      summary: Criar corporação
+      description: |
+        Registra uma nova **corporação** no sistema Brise Cloud.  
+
+        O usuário autenticado que realiza a requisição é automaticamente convertido em um **usuário corporativo**, tornando-se o **owner** da corporação.  
+
+        O vínculo entre usuário e corporação é estabelecido internamente pela API, e o campo `owner_id` é definido de forma automática, sem necessidade de envio pelo cliente.  
+      operationId: createCorporation
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Dados da corporação a ser criada
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - tax_id
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Tech Solutions Ltda."
+                tax_id:
+                  type: string
+                  example: "12.345.678/0001-90"
+                status:
+                  type: string
+                  enum: [ 'active', 'suspended', 'deleted' ]
+                  default: active
+                  example: active
+            examples:
+              createCorporationRequest:
+                summary: Exemplo de criação com status padrão
+                value:
+                  name: "Nova Corporação LTDA"
+                  tax_id: "98.765.432/0001-21"
+      responses:
+        '201':
+          description: Corporação criada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 301
+                  status:
+                    type: string
+                    enum: [ 'active', 'suspended', 'deleted' ]
+                    example: active
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2025-09-22T15:30:00Z"
+        '400':
+          description: Requisição inválida, dados ausentes ou incorretos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflito, corporação com mesmo CNPJ já existe.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_ALREADY_EXISTS
+        '401':
+          description: Não autorizado (token ausente ou inválido).
           content:
             application/json:
               schema:
