@@ -60,14 +60,14 @@
         email: form.email.value,
         contact_name: form.contact_name.value,
         contact_phone: form.contact_phone.value,
-        redirect_uri: form.redirect_uri.value || null
+        redirect_uri: form.redirect_uri.value || undefined
       };
 
       const messageBox = document.getElementById("responseMessage");
       messageBox.classList.add("hidden");
 
       try {
-        const res = await fetch("https://brise.agst.com.br/api/v3/applications", {
+        const res = await fetch("/api/v3/applications", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
