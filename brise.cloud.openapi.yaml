@@ -21,9 +21,9 @@ info:
 
     As chamadas são baseadas em métodos **RESTful**, seguindo boas práticas de design de APIs, com autenticação segura e respostas padronizadas para facilitar o desenvolvimento e a manutenção.
 
-    ### Brise Local API
+    ### Brise LAN API
 
-    Além da solução remota, a **Brise Local API** oferece comunicação direta com os dispositivos Brise dentro da mesma rede local, sem dependência de conexão com a internet.
+    Além da solução remota, a **Brise LAN API** oferece comunicação direta com os dispositivos Brise dentro da mesma rede local, sem dependência de conexão com a internet.
 
     Essa API é ideal para cenários onde:
     - A conectividade com a internet não é confiável ou aceitável.
@@ -103,6 +103,7 @@ paths:
                 properties:
                   id:
                     type: integer
+                    readOnly: true
                     example: 101
                   status:
                     type: string
@@ -112,6 +113,7 @@ paths:
                   created_at:
                     type: string
                     format: date-time
+                    readOnly: true
                     example: "2025-09-09T10:00:00Z"
         '400':
           description: Requisição inválida. Verifique os dados enviados.
@@ -352,10 +354,6 @@ paths:
         '401':
           description: |
             Credenciais inválidas ou usuário não ativo.  
-            Possíveis causas:
-            - `INVALID_CREDENTIALS`: senha ou e-mail incorretos
-            - `USER_BLOCKED`: usuário bloqueado
-            - `USER_PENDING`: usuário ainda não ativado
           content:
             application/json:
               schema:
@@ -364,6 +362,7 @@ paths:
                   error:
                     type: string
                     example: INVALID_CREDENTIALS
+                    enum: [INVALID_CREDENTIALS, USER_BLOCKED, USER_PENDING]
 
   /users/validate-token:
     get:
@@ -382,7 +381,7 @@ paths:
       - in: header
         name: Authorization
         required: true
-        description: Token de autenticação no formato `Bearer <token>`
+        description: Token de autenticação no formato `Bearer <access_token>`
         schema:
           type: string
           example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -401,10 +400,7 @@ paths:
                     example: 3600
         '401':
           description: |
-            Token inválido ou expirado. Possíveis causas:
-            - `INVALID_TOKEN`: token inválido
-            - `EXPIRED_TOKEN`: token expirado
-            - `USER_NOT_FOUND`: usuário não encontrado
+            Token inválido ou expirado.  
           content:
             application/json:
               schema:
@@ -413,6 +409,7 @@ paths:
                   error:
                     type: string
                     example: INVALID_TOKEN
+                    enum: [INVALID_TOKEN, EXPIRED_TOKEN, USER_NOT_FOUND]
 
   /corporations:
     post:
