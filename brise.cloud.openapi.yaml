@@ -39,12 +39,11 @@ info:
     <!-- ReDoc-Inject: <security-definitions> -->
 
     ## 🚀 Primeiros Passos
-    1. Registre seu aplicativo no [Portal de Desenvolvedores](https://developers.brise.cloud)
+    1. Registre seu aplicativo no [Portal de Desenvolvedores](https://brise.agst.com.br/api/v3/sp/application.html)
     2. Obtenha `client_id` e `client_secret`
     3. Inicie o fluxo OAuth2 ou gere um JWT
     4. Inclua o token nas requisições autenticadas
     
-
 servers:
   - url: "https://brise.agst.com.br/api/v3"
     description: Servidor de Produção
@@ -63,6 +62,14 @@ tags:
       Agrupa os conjuntos de endpoints responsáveis pelo gerenciamento de corporações no sistema.  
 
       Permite criar, consultar e manter informações das corporações, bem como gerenciar o vínculo entre usuários e suas respectivas organizações.  
+  - name: Aplicações
+    description: |
+      Agrupa os endpoints responsáveis pelo cadastro e gerenciamento de aplicações que poderão interagir com a API Brise Cloud via OAuth2.  
+
+      > ℹ️ Observações:
+      > - Cada aplicação pertence a um usuário registrado (`owner_id`).  
+      > - Após o cadastro, a aplicação fica com status `pending` até avaliação da equipe.  
+      > - Após liberação, o sistema fornece `client_id` e `client_secret`.
 paths:
   /users:
     post:
@@ -504,6 +511,104 @@ paths:
                   error:
                     type: string
                     example: INVALID_TOKEN
+
+  /applications:
+    post:
+      tags:
+        - Aplicações
+      summary: Solicitar cadastro
+      description: |
+        Permite que um usuário registrado no Brise Cloud solicite o cadastro de uma aplicação
+        que poderá interagir com a API via OAuth2. Após a análise da equipe, será atribuído
+        um `client_id` e `client_secret`.
+
+        > ℹ️ Observações:
+        > - O usuário deve existir no Brise Cloud.
+        > - A solicitação será criada com status `pending` até ser avaliada.
+        > - Campos obrigatórios: `name`, `email`, `contact_name`, `contact_phone`.
+      operationId: createApplication
+      requestBody:
+        description: Dados da aplicação a ser registrada
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - contact_name
+                - contact_phone
+              properties:
+                name:
+                  type: string
+                  description: Nome da aplicação
+                  example: "Meu Sistema de Gestão"
+                email:
+                  type: string
+                  format: email
+                  description: E-mail do proprietário (usuário Brise Cloud)
+                  example: "usuario@exemplo.com"
+                contact_name:
+                  type: string
+                  description: Nome de contato da aplicação
+                  example: "João Silva"
+                contact_phone:
+                  type: string
+                  description: Telefone de contato da aplicação
+                  example: "+55 (11) 99999-9999"
+                redirect_uri:
+                  type: string
+                  description: URI de callback OAuth2 (opcional)
+                  example: "https://meuapp.com/oauth/callback"
+      responses:
+        '201':
+          description: Solicitação registrada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 501
+                  status:
+                    type: string
+                    enum: [pending, active, revoked]
+                    example: pending
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2025-09-24T14:00:00Z"
+                  message:
+                    type: string
+                    example: "Solicitação registrada com sucesso. A equipe irá analisar e liberar os dados."
+        '400':
+          description: Requisição inválida. Campos ausentes ou incorretos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuário não encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+        '409':
+          description: Conflito, aplicação com mesmo nome ou e-mail já existe.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: APPLICATION_ALREADY_EXISTS
 
 components:
   securitySchemes:
