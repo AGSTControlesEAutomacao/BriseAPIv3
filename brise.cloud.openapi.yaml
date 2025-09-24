@@ -523,6 +523,59 @@ paths:
                   error:
                     type: string
                     example: INVALID_TOKEN
+  
+  /corporations/{corporation_id}:
+    get:
+      tags:
+        - Corporações
+      summary: Obter dados de corporação
+      description: |
+        Retorna as informações detalhadas de uma corporação específica no Brise Cloud.
+
+        O usuário precisa estar associado à corporação como proprietário ou administrador para acessá-la.  
+      operationId: getCorporationById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação
+      responses:
+        '200':
+          description: Dados da corporação retornados com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Corporation'
+        '400':
+          description: Requisição inválida. Campos ausentes ou incorretos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Usuário não possui acesso a esta corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ACCESS_DENIED
+        '404':
+          description: Corporação não encontrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
 
   /applications:
     post:
@@ -652,6 +705,34 @@ components:
           tokenUrl: "https://brise.agst.com.br/api/v3/oauth/token"
   
   schemas:
+    Corporation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 301
+        name:
+          type: string
+          example: "Tech Solutions Ltda."
+        tax_id:
+          type: string
+          example: "12.345.678/0001-90"
+        owner_id:
+          type: integer
+          example: 101
+        status:
+          type: string
+          enum: [ 'active', 'suspended', 'deleted' ]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-09-22T15:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-10-01T10:00:00Z"
+
     ErrorResponse:
       type: object
       properties:
