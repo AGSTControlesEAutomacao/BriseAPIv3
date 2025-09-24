@@ -7,28 +7,43 @@ info:
     email: ped@agst.com.br
     url: https://www.agst.com.br
   description: |
+    # Introdução
+
     A **Brise Cloud API** é a interface oficial para integração com o sistema Brise por meio do serviço remoto.  
     Ela permite que aplicações de automação se comuniquem com dispositivos Brise conectados ao serviço remoto **Brise Cloud**, facilitando a integração com sistemas de supervisão, gestão predial, automação residencial e industrial.
 
     Todas as requisições e respostas utilizam o formato **JSON**, garantindo interoperabilidade e facilidade de processamento em diferentes plataformas.
 
-    ### Funcionalidades principais
+    > Além da solução remota, a **Brise LAN API** oferece comunicação direta com os dispositivos Brise dentro da mesma rede local, sem dependência de conexão com a internet.
+    > 
+    > Essa API é ideal para cenários onde:
+    > - A conectividade com a internet não é confiável ou aceitável.
+    > - Baixa latência é essencial.
+    > - O controle local é prioritário por questões de segurança ou desempenho.
+
+    ## Funcionalidades principais
 
     - **Consultar e controlar dispositivos Brise** conectados ao serviço remoto  
     - **Gerenciar grupos de dispositivos** e suas configurações centralizadas  
     - **Monitorar status em tempo real** e métricas operacionais  
     - **Integrar de forma unificada** com sistemas de terceiros via RESTful  
 
-    As chamadas são baseadas em métodos **RESTful**, seguindo boas práticas de design de APIs, com autenticação segura e respostas padronizadas para facilitar o desenvolvimento e a manutenção.
+    As chamadas são baseadas em métodos **RESTful**, seguindo boas práticas de design de APIs, com autenticação segura e respostas padronizadas para facilitar o desenvolvimento e a manutenção.  
 
-    ### Brise LAN API
+    # 🔐 Autenticação
 
-    Além da solução remota, a **Brise LAN API** oferece comunicação direta com os dispositivos Brise dentro da mesma rede local, sem dependência de conexão com a internet.
+    Este tópico descreve os métodos de autenticação disponíveis e como utilizá-los.  
 
-    Essa API é ideal para cenários onde:
-    - A conectividade com a internet não é confiável ou aceitável.
-    - Baixa latência é essencial.
-    - O controle local é prioritário por questões de segurança ou desempenho.
+    > ⚠️ **Recomendação**: Utilize OAuth 2.0 com fluxo `authorizationCode` para integrações seguras.
+
+    <!-- ReDoc-Inject: <security-definitions> -->
+
+    ## 🚀 Primeiros Passos
+    1. Registre seu aplicativo no [Portal de Desenvolvedores](https://developers.brise.cloud)
+    2. Obtenha `client_id` e `client_secret`
+    3. Inicie o fluxo OAuth2 ou gere um JWT
+    4. Inclua o token nas requisições autenticadas
+    
 
 servers:
   - url: "https://brise.agst.com.br/api/v3"
@@ -499,25 +514,24 @@ paths:
 components:
   securitySchemes:
     bearerAuth:
+      title: Bearer Authentication
       type: http
       scheme: bearer
       bearerFormat: JWT
       description: |
-        O token de acesso JWT deve ser enviado no cabeçalho `Authorization` da sua requisição.
+        O token de acesso JWT deve ser enviado no cabeçalho `Authorization` da sua requisição autenticadas.
         
-        **Formato:** `Authorization: Bearer <seu_token>`
+        ```
+        Authorization: Bearer <seu-token>
+        ```
 
+        Tokens têm vida curta e devem ser renovados conforme necessário.  
     oauth2:
       type: oauth2
       description: |
         Este esquema de segurança segue o padrão **OAuth 2.0**, permitindo que aplicativos de terceiros acessem recursos em nome do usuário sem expor a senha diretamente.  
 
         O fluxo `authorizationCode` é o mais recomendado, pois garante maior segurança ao usuário e ao cliente.  
-
-        Para solicitar credenciais OAuth 2.0, registre seu aplicativo no [Portal de Desenvolvedores da Brise Cloud](https://brise.agst.com.br/developers) e obtenha um `client_id` e um `client_secret`.  
-
-        Após obter suas credenciais, utilize o fluxo de autorização para gerar um *access token* válido.
-
       flows:
         authorizationCode:
           authorizationUrl: "https://brise.agst.com.br/api/v3/oauth/authorize"
