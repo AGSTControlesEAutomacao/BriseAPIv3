@@ -610,18 +610,30 @@ paths:
                 memberList:
                   summary: Exemplo de lista de membros de uma corporação
                   value:
-                    - id: 202
-                      email: "pedro.dev@empresa.com"
-                      status: "active"
-                      role: "admin"
-                    - id: 203
-                      email: "maria.vendas@empresa.com"
-                      status: "active"
-                      role: "user"
-                    - id: 204
-                      email: "carlos.estagiario@empresa.com"
-                      status: "pending"
+                    - user_id: 202
+                      email: "pedro.rabello@empresa.com"
+                      full_name: "Pedro Rabello"
                       role: "owner"
+                      member_status: "active"
+                      user_status: "active"
+                      created_at: "2023-01-01T12:00:00Z"
+                      updated_at: "2023-01-10T15:30:00Z"
+                    - user_id: 203
+                      email: "maria.esteves@empresa.com"
+                      full_name: "Maria Esteves"
+                      role: "user"
+                      member_status: "rejected"
+                      user_status: "active"
+                      created_at: "2023-02-05T09:20:00Z"
+                      updated_at: "2023-02-15T11:45:00Z"
+                    - user_id: 204
+                      email: "carlos.garcia@empresa.com"
+                      full_name: "Carlos Garcia"
+                      role: "admin"
+                      member_status: "pending"
+                      user_status: "active"
+                      created_at: "2023-03-10T14:00:00Z"
+                      updated_at: "2023-03-12T16:30:00Z"
         '403':
           description: Usuário não possui acesso a esta corporação.
           content:
@@ -642,6 +654,100 @@ paths:
                   error:
                     type: string
                     example: CORPORATION_NOT_FOUND
+    post:
+      tags:
+        - Corporações
+      summary: Adicionar membro à corporação
+      description: |
+        Adiciona um novo membro a uma corporação, criando um novo usuário (se ainda não existir) ou vinculando um usuário já registrado no sistema Brise Cloud.
+
+        - Se o usuário ainda **não existir**, será criado com `user_status = pending` (aguardando ativação da conta) e o vínculo já ativo (`member_status = active`).  
+        - Se o usuário já **existir**, será vinculado inicialmente com `member_status = pending`, aguardando a aceitação do convite.  
+        - O vínculo só se torna efetivo quando o usuário aceita o convite, momento em que `member_status = active`.  
+
+        O `user_status` representa o estado da conta do usuário no sistema, enquanto o `member_status` representa apenas a relação do usuário com a corporação.  
+
+        > ⚠️ **Nota:** 
+        > Apenas usuários **administradores** da corporação podem adicionar novos membros.
+      operationId: addCorporationMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação
+      requestBody:
+        description: Dados do usuário a ser adicionado como membro
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: E-mail do usuário a ser adicionado (deve estar registrado no sistema)
+                role:
+                  type: string
+                  enum: [ 'admin', 'user' ]
+                  description: Papel do usuário na corporação (admin ou user)
+            examples:
+                addMemberRequest:
+                  summary: Exemplo de requisição para adicionar membro
+                  value:
+                    email: "pedro.rabello@empresa.com"
+                    role: admin
+      responses:
+        '201':
+          description: Membro adicionado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorporateMemberResponse'
+        '400':
+          description: Requisição inválida. Campos ausentes ou incorretos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Usuário não possui acesso a esta corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ACCESS_DENIED
+        '404':
+          description: Corporação ou usuário não encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
+        '409':
+          description: Conflito, usuário já é membro da corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_ALREADY_MEMBER
+            
 
   /applications:
     post:
@@ -802,17 +908,43 @@ components:
     CorporateMemberResponse:
       type: object
       properties:
-        id:
+        user_id:
           type: integer
-          format: int64
+          description: ID do usuário
+          example: 202
         email:
           type: string
-        status:
+          description: E-mail do usuário
+          example: "pedro.rabello@empresa.com"
+        full_name:
           type: string
-          enum: [ 'active', 'pending', 'bloecked' ]
+          description: Nome completo do usuário
+          example: "Pedro Rabello"
         role:
           type: string
-          enum: [ 'owner', 'admin', 'user' ]
+          enum: [owner, admin, user]
+          description: Papel do usuário na corporação (owner, admin ou user)
+          example: "admin"
+        member_status:
+          type: string
+          enum: [pending, active, rejected, revoked]
+          description: Status do vínculo do usuário com a corporação
+          example: pending
+        user_status:
+          type: string
+          enum: [active, pending, blocked]
+          description: Status da conta do usuário no sistema
+          example: active
+        created_at:
+          type: string
+          format: date-time
+          description: Data de criação do vínculo
+          example: "2023-01-01T12:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Data da última atualização do vínculo
+          example: "2023-01-10T15:30:00Z"
 
     ErrorResponse:
       type: object
