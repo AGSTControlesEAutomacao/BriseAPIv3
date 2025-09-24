@@ -7,28 +7,43 @@ info:
     email: ped@agst.com.br
     url: https://www.agst.com.br
   description: |
+    # Introdução
+
     A **Brise Cloud API** é a interface oficial para integração com o sistema Brise por meio do serviço remoto.  
     Ela permite que aplicações de automação se comuniquem com dispositivos Brise conectados ao serviço remoto **Brise Cloud**, facilitando a integração com sistemas de supervisão, gestão predial, automação residencial e industrial.
 
     Todas as requisições e respostas utilizam o formato **JSON**, garantindo interoperabilidade e facilidade de processamento em diferentes plataformas.
 
-    ### Funcionalidades principais
+    > Além da solução remota, a **Brise LAN API** oferece comunicação direta com os dispositivos Brise dentro da mesma rede local, sem dependência de conexão com a internet.
+    > 
+    > Essa API é ideal para cenários onde:
+    > - A conectividade com a internet não é confiável ou aceitável.
+    > - Baixa latência é essencial.
+    > - O controle local é prioritário por questões de segurança ou desempenho.
+
+    ## Funcionalidades principais
 
     - **Consultar e controlar dispositivos Brise** conectados ao serviço remoto  
     - **Gerenciar grupos de dispositivos** e suas configurações centralizadas  
     - **Monitorar status em tempo real** e métricas operacionais  
     - **Integrar de forma unificada** com sistemas de terceiros via RESTful  
 
-    As chamadas são baseadas em métodos **RESTful**, seguindo boas práticas de design de APIs, com autenticação segura e respostas padronizadas para facilitar o desenvolvimento e a manutenção.
+    As chamadas são baseadas em métodos **RESTful**, seguindo boas práticas de design de APIs, com autenticação segura e respostas padronizadas para facilitar o desenvolvimento e a manutenção.  
 
-    ### Brise Local API
+    # 🔐 Autenticação
 
-    Além da solução remota, a **Brise Local API** oferece comunicação direta com os dispositivos Brise dentro da mesma rede local, sem dependência de conexão com a internet.
+    Este tópico descreve os métodos de autenticação disponíveis e como utilizá-los.  
 
-    Essa API é ideal para cenários onde:
-    - A conectividade com a internet não é confiável ou aceitável.
-    - Baixa latência é essencial.
-    - O controle local é prioritário por questões de segurança ou desempenho.
+    > ⚠️ **Recomendação**: Utilize OAuth 2.0 com fluxo `authorizationCode` para integrações seguras.
+
+    <!-- ReDoc-Inject: <security-definitions> -->
+
+    ## 🚀 Primeiros Passos
+    1. Registre seu aplicativo no [Portal de Desenvolvedores](https://developers.brise.cloud)
+    2. Obtenha `client_id` e `client_secret`
+    3. Inicie o fluxo OAuth2 ou gere um JWT
+    4. Inclua o token nas requisições autenticadas
+    
 
 servers:
   - url: "https://brise.agst.com.br/api/v3"
@@ -36,4 +51,490 @@ servers:
   - url: "https://intranet.agst.com.br:8090/api/v3"
     description: Servidor local de desenvolvimento
 
-paths: {}
+tags:
+  - name: Usuários
+    description: |
+      Esta categoria abrange o gerenciamento de contas no sistema Brise Cloud. Ela permite criar novos usuários, enviar tokens de ativação, ativar contas pendentes e solicitar o reenvio de um novo token caso o anterior tenha expirado ou seja perdido. O objetivo é fornecer um processo seguro e consistente para que os usuários completem sua ativação e possam acessar os recursos do sistema.
+
+      > ⚠️ **Nota importante:**  
+      > Muitos dos endpoints deste grupo não requerem autenticação, pois são necessários para a criação da conta. A princípio, serão usados apenas por sistemas internos, integrando com o App, e **não serão divulgados na API pública**.
+  - name: Corporações
+    description: |
+      Agrupa os conjuntos de endpoints responsáveis pelo gerenciamento de corporações no sistema.  
+
+      Permite criar, consultar e manter informações das corporações, bem como gerenciar o vínculo entre usuários e suas respectivas organizações.  
+paths:
+  /users:
+    post:
+      tags:
+        - Usuários
+      summary: Criar usuário
+      description: |
+        Registra um novo usuário no sistema Brise Cloud.  
+        Por padrão, a conta é criada com status `pending`.
+
+        > ℹ️ **Observações:**  
+        >- Um token de ativação é enviado para o e-mail informado no cadastro.  
+        >- O token deve ser utilizado em outro endpoint para ativar a conta.  
+        >- Contas corporativas devem ser criadas por administradores de organizações.
+      operationId: createUser
+      requestBody:
+        description: Dados do usuário a ser criado
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - full_name
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Endereço de e-mail do usuário
+                full_name:
+                  type: string
+                  description: Nome completo do usuário
+                password:
+                  type: string
+                  format: password
+                  description: Senha do usuário (mínimo 8 caracteres)
+            examples:
+                createUserRequest:
+                  summary: Exemplo de requisição para criação de usuário
+                  value:
+                    email: "joao.silva@exemplo.com"
+                    full_name: "João Silva"
+                    password: "senhaSegura123"
+      responses:
+        '201':
+          description: Usuário criado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    readOnly: true
+                    example: 101
+                  status:
+                    type: string
+                    enum: [pending, active, blocked]
+                    default: pending
+                    example: pending
+                  created_at:
+                    type: string
+                    format: date-time
+                    readOnly: true
+                    example: "2025-09-09T10:00:00Z"
+        '400':
+          description: Requisição inválida. Verifique os dados enviados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflito. O e-mail já está em uso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: EMAIL_ALREADY_IN_USE
+
+  /users/activate:
+    post:
+      tags:
+        - Usuários
+      summary: Ativar usuário
+      description: |
+        Ativa uma conta de usuário previamente criada no sistema Brise Cloud usando um token de ativação enviado por e-mail.
+
+        > ℹ️ **Observações:**  
+        > - O token de ativação expira após 7 dias.  
+        > - A qualquer momento, antes ou depois de expirar, pode ser solicitado o reenvio do token através de outro endpoint.  
+        > - Após a ativação, o status do usuário passa de `pending` para `active`.
+      operationId: activateUser
+      requestBody:
+        description: Dados necessários para ativação do usuário
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - token
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Endereço de e-mail do usuário a ser ativado
+                token:
+                  type: string
+                  description: Código de verificação recebido por e-mail
+            examples:
+                activateUserRequest:
+                  summary: Exemplo de requisição para ativação de usuário
+                  value:
+                    email: "joao.silva@exemplo.com"
+                    token: "123456"
+      responses:
+        '200':
+          description: Usuário ativado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 101
+                  status:
+                    type: string
+                    enum: [pending, active, blocked]
+                    example: active
+                  updated_at:
+                    type: string
+                    format: date-time
+                    example: "2025-09-22T14:00:00Z"
+        '400':
+          description: Requisição inválida. Token ou e-mail ausente ou incorreto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuário não encontrado ou token inválido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+        '409':
+          description: Usuário já está ativo.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_ALREADY_ACTIVE
+
+  /users/resend-activation:
+    post:
+      tags:
+        - Usuários
+      summary: Reenviar token de ativação
+      description: |
+        Solicita o reenvio de um **novo token de ativação** para um usuário cuja conta ainda não foi ativada.
+
+        > ℹ️ **Observações:**  
+        > - Um **novo token** será enviado para o e-mail informado.  
+        > - O token antigo é invalidado assim que o novo é gerado.  
+        > - Pode ser solicitado a qualquer momento, mesmo que o token anterior tenha expirado.  
+        > - Após receber o novo token, o usuário deve utilizá-lo para ativar sua conta através do endpoint `/users/activate`.
+      operationId: resendActivationToken
+      requestBody:
+        description: E-mail do usuário que receberá o novo token de ativação
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Endereço de e-mail do usuário que receberá o novo token
+            examples:
+              resendActivationRequest:
+                summary: Exemplo de requisição para reenvio de token
+                value:
+                  email: "joao.silva@exemplo.com"
+      responses:
+        '200':
+          description: Novo token de ativação enviado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Novo token de ativação enviado com sucesso para joao.silva@exemplo.com"
+        '400':
+          description: Requisição inválida. E-mail ausente ou formato incorreto.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_REQUEST
+        '404':
+          description: Usuário não encontrado ou já ativo.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+
+  /users/login:
+    post:
+      tags:
+        - Usuários
+      summary: Autenticar usuário
+      description: |
+        Permite que um usuário autenticado acesse o sistema Brise Cloud utilizando e-mail e senha. 
+        Retorna um token de sessão (JWT ou outro esquema de autenticação) que deve ser utilizado nas requisições subsequentes aos endpoints que requerem autenticação.
+
+        > ℹ️ **Observações:**  
+        > - Apenas usuários com status `active` podem se autenticar.  
+        > - Usuários com status `pending` iniciaram automaticamente o processo de ativação, e um código de ativação é enviado para o e-mail cadastrado.  
+        > - Usuários com status `blocked` não podem realizar login e receberão uma mensagem de erro apropriada.
+      operationId: loginUser
+      requestBody:
+        description: Credenciais do usuário
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Endereço de e-mail do usuário
+                password:
+                  type: string
+                  format: password
+                  description: Senha do usuário
+            examples:
+                loginRequest:
+                  summary: Exemplo de requisição para autenticação de usuário
+                  value:
+                    email: "joao.silva@exemplo.com"
+                    password: "senhaSegura123"
+      responses:
+        '200':
+          description: Login realizado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: Token de acesso para autenticação nos endpoints protegidos
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  refresh_token:
+                    type: string
+                    description: Token utilizado para renovar o token de acesso
+                    example: "dGhpc2lzc2Ftb3JlZnJlc2h0b2tlbg=="
+                  expires_in:
+                    type: integer
+                    format: int64
+                    description: Tempo em segundos para expiração do token de acesso sendo o padrão (48 horas)
+                    default: 172800
+                    example: 172800
+                  token_type:
+                    type: string
+                    description: Tipo do token emitido
+                    example: "Bearer"
+        '400':
+          description: Requisição inválida. Campos obrigatórios ausentes ou formato incorreto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: |
+            Credenciais inválidas ou usuário não ativo.  
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_CREDENTIALS
+                    enum: [INVALID_CREDENTIALS, USER_BLOCKED, USER_PENDING]
+
+  /users/validate-token:
+    get:
+      tags:
+        - Usuários
+      summary: Validar token
+      description: |
+        Verifica se o token de autenticação fornecido é válido, ainda não expirou ou se foi revogado. 
+        Este endpoint pode ser usado por aplicativos ou plataformas para confirmar a validade do token armazenado, evitando a necessidade de login completo.  
+
+        É especialmente útil em cenários de **“lembrar login”**, permitindo que o sistema valide um token salvo localmente antes de solicitar novamente as credenciais do usuário, proporcionando uma experiência mais fluida e segura.
+      operationId: validateToken
+      security:
+        - bearerAuth: []
+      parameters:
+      - in: header
+        name: Authorization
+        required: true
+        description: Token de autenticação no formato `Bearer <access_token>`
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token válido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  expires_at:
+                    type: integer
+                    format: int64
+                    description: Tempo em segundos para expiração do token de acesso
+                    example: 3600
+        '401':
+          description: |
+            Token inválido ou expirado.  
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_TOKEN
+                    enum: [INVALID_TOKEN, EXPIRED_TOKEN, USER_NOT_FOUND]
+
+  /corporations:
+    post:
+      tags:
+        - Corporações
+      summary: Criar corporação
+      description: |
+        Registra uma nova **corporação** no sistema Brise Cloud.  
+
+        O usuário autenticado que realiza a requisição é automaticamente convertido em um **usuário corporativo**, tornando-se o **owner** da corporação.  
+
+        O vínculo entre usuário e corporação é estabelecido internamente pela API, e o campo `owner_id` é definido de forma automática, sem necessidade de envio pelo cliente.  
+      operationId: createCorporation
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Dados da corporação a ser criada
+        required: true
+        content:
+          application/json:
+            schema:
+              required:
+                - name
+                - tax_id
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Nome fantasia da corporação
+                  example: "Tech Solutions Ltda."
+                tax_id:
+                  type: string
+                  description: CNPJ da corporação
+                  example: "12.345.678/0001-90"
+      responses:
+        '201':
+          description: Corporação criada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 301
+                  status:
+                    type: string
+                    enum: [ 'active', 'suspended', 'deleted' ]
+                    example: active
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2025-09-22T15:30:00Z"
+        '400':
+          description: Requisição inválida, dados ausentes ou incorretos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflito, corporação com mesmo CNPJ já existe.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_ALREADY_EXISTS
+        '401':
+          description: Não autorizado (token ausente ou inválido).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_TOKEN
+
+components:
+  securitySchemes:
+    bearerAuth:
+      title: Bearer Authentication
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        O token de acesso JWT deve ser enviado no cabeçalho `Authorization` da sua requisição autenticadas.
+        
+        ```
+        Authorization: Bearer <seu-token>
+        ```
+
+        Tokens têm vida curta e devem ser renovados conforme necessário.  
+    oauth2:
+      type: oauth2
+      description: |
+        Este esquema de segurança segue o padrão **OAuth 2.0**, permitindo que aplicativos de terceiros acessem recursos em nome do usuário sem expor a senha diretamente.  
+
+        O fluxo `authorizationCode` é o mais recomendado, pois garante maior segurança ao usuário e ao cliente.  
+      flows:
+        authorizationCode:
+          authorizationUrl: "https://brise.agst.com.br/api/v3/oauth/authorize"
+          tokenUrl: "https://brise.agst.com.br/api/v3/oauth/token"
+  
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: INVALID_REQUEST
