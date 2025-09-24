@@ -84,6 +84,9 @@ paths:
         >- Um token de ativação é enviado para o e-mail informado no cadastro.  
         >- O token deve ser utilizado em outro endpoint para ativar a conta.  
         >- Contas corporativas devem ser criadas por administradores de organizações.
+
+        > 🚨 **Nota Importante:**  
+        > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: createUser
       requestBody:
         description: Dados do usuário a ser criado
@@ -166,6 +169,9 @@ paths:
         > - O token de ativação expira após 7 dias.  
         > - A qualquer momento, antes ou depois de expirar, pode ser solicitado o reenvio do token através de outro endpoint.  
         > - Após a ativação, o status do usuário passa de `pending` para `active`.
+
+        > 🚨 **Nota Importante:**  
+        > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: activateUser
       requestBody:
         description: Dados necessários para ativação do usuário
@@ -250,6 +256,9 @@ paths:
         > - O token antigo é invalidado assim que o novo é gerado.  
         > - Pode ser solicitado a qualquer momento, mesmo que o token anterior tenha expirado.  
         > - Após receber o novo token, o usuário deve utilizá-lo para ativar sua conta através do endpoint `/users/activate`.
+
+        > 🚨 **Nota Importante:**  
+        > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: resendActivationToken
       requestBody:
         description: E-mail do usuário que receberá o novo token de ativação
@@ -315,6 +324,9 @@ paths:
         > - Apenas usuários com status `active` podem se autenticar.  
         > - Usuários com status `pending` iniciaram automaticamente o processo de ativação, e um código de ativação é enviado para o e-mail cadastrado.  
         > - Usuários com status `blocked` não podem realizar login e receberão uma mensagem de erro apropriada.
+
+        > 🚨 **Nota Importante:**  
+        > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: loginUser
       requestBody:
         description: Credenciais do usuário
@@ -526,6 +538,9 @@ paths:
         > - O usuário deve existir no Brise Cloud.
         > - A solicitação será criada com status `pending` até ser avaliada.
         > - Campos obrigatórios: `name`, `email`, `contact_name`, `contact_phone`.
+
+        > 🚨 **Nota Importante:**  
+        > Quando houver a plataforma implementada as solicitações deverão ser atraves dela e por tanto respeitando as regras de segurança, deixando de ser um endpoint publico.
       operationId: createApplication
       requestBody:
         description: Dados da aplicação a ser registrada
