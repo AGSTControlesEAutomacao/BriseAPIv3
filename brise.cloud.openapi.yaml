@@ -39,12 +39,11 @@ info:
     <!-- ReDoc-Inject: <security-definitions> -->
 
     ## 🚀 Primeiros Passos
-    1. Registre seu aplicativo no [Portal de Desenvolvedores](https://developers.brise.cloud)
+    1. Registre seu aplicativo no [Portal de Desenvolvedores](https://brise.agst.com.br/api/v3/sp/application.html)
     2. Obtenha `client_id` e `client_secret`
     3. Inicie o fluxo OAuth2 ou gere um JWT
     4. Inclua o token nas requisições autenticadas
     
-
 servers:
   - url: "https://brise.agst.com.br/api/v3"
     description: Servidor de Produção
@@ -63,6 +62,14 @@ tags:
       Agrupa os conjuntos de endpoints responsáveis pelo gerenciamento de corporações no sistema.  
 
       Permite criar, consultar e manter informações das corporações, bem como gerenciar o vínculo entre usuários e suas respectivas organizações.  
+  - name: Aplicações
+    description: |
+      Agrupa os endpoints responsáveis pelo cadastro e gerenciamento de aplicações que poderão interagir com a API Brise Cloud via OAuth2.  
+
+      > ℹ️ Observações:
+      > - Cada aplicação pertence a um usuário registrado (`owner_id`).  
+      > - Após o cadastro, a aplicação fica com status `pending` até avaliação da equipe.  
+      > - Após liberação, o sistema fornece `client_id` e `client_secret`.
 paths:
   /users:
     post:
@@ -77,6 +84,9 @@ paths:
         >- Um token de ativação é enviado para o e-mail informado no cadastro.  
         >- O token deve ser utilizado em outro endpoint para ativar a conta.  
         >- Contas corporativas devem ser criadas por administradores de organizações.
+
+        > 🚨 **Nota Importante:**  
+        > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: createUser
       requestBody:
         description: Dados do usuário a ser criado
@@ -159,6 +169,9 @@ paths:
         > - O token de ativação expira após 7 dias.  
         > - A qualquer momento, antes ou depois de expirar, pode ser solicitado o reenvio do token através de outro endpoint.  
         > - Após a ativação, o status do usuário passa de `pending` para `active`.
+
+        > 🚨 **Nota Importante:**  
+        > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: activateUser
       requestBody:
         description: Dados necessários para ativação do usuário
@@ -243,6 +256,9 @@ paths:
         > - O token antigo é invalidado assim que o novo é gerado.  
         > - Pode ser solicitado a qualquer momento, mesmo que o token anterior tenha expirado.  
         > - Após receber o novo token, o usuário deve utilizá-lo para ativar sua conta através do endpoint `/users/activate`.
+
+        > 🚨 **Nota Importante:**  
+        > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: resendActivationToken
       requestBody:
         description: E-mail do usuário que receberá o novo token de ativação
@@ -308,6 +324,9 @@ paths:
         > - Apenas usuários com status `active` podem se autenticar.  
         > - Usuários com status `pending` iniciaram automaticamente o processo de ativação, e um código de ativação é enviado para o e-mail cadastrado.  
         > - Usuários com status `blocked` não podem realizar login e receberão uma mensagem de erro apropriada.
+
+        > 🚨 **Nota Importante:**  
+        > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: loginUser
       requestBody:
         description: Credenciais do usuário
@@ -504,6 +523,332 @@ paths:
                   error:
                     type: string
                     example: INVALID_TOKEN
+  
+  /corporations/{corporation_id}:
+    get:
+      tags:
+        - Corporações
+      summary: Obter dados de corporação
+      description: |
+        Retorna as informações detalhadas de uma corporação específica no Brise Cloud.
+
+        O usuário precisa estar associado à corporação como proprietário ou administrador para acessá-la.  
+      operationId: getCorporationById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação
+      responses:
+        '200':
+          description: Dados da corporação retornados com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Corporation'
+        '400':
+          description: Requisição inválida. Campos ausentes ou incorretos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Usuário não possui acesso a esta corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ACCESS_DENIED
+        '404':
+          description: Corporação não encontrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
+
+  /corporations/{corporation_id}/members:
+    get:
+      tags:
+        - Corporações
+      summary: Listar membros da corporação
+      description: |
+        Retorna a lista de usuários vinculados a uma corporação, incluindo o **owner** e os membros corporativos.  
+
+        > ⚠️ **Nota:** 
+        > Apenas usuários administradores da corporação podem acessar esta informação.
+      operationId: listCorporationMembers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação
+      responses:
+        '200':
+          description: Lista de membros retornada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CorporateMemberResponse'
+              examples:
+                memberList:
+                  summary: Exemplo de lista de membros de uma corporação
+                  value:
+                    - user_id: 202
+                      email: "pedro.rabello@empresa.com"
+                      full_name: "Pedro Rabello"
+                      role: "owner"
+                      member_status: "active"
+                      user_status: "active"
+                      created_at: "2023-01-01T12:00:00Z"
+                      updated_at: "2023-01-10T15:30:00Z"
+                    - user_id: 203
+                      email: "maria.esteves@empresa.com"
+                      full_name: "Maria Esteves"
+                      role: "user"
+                      member_status: "rejected"
+                      user_status: "active"
+                      created_at: "2023-02-05T09:20:00Z"
+                      updated_at: "2023-02-15T11:45:00Z"
+                    - user_id: 204
+                      email: "carlos.garcia@empresa.com"
+                      full_name: "Carlos Garcia"
+                      role: "admin"
+                      member_status: "pending"
+                      user_status: "active"
+                      created_at: "2023-03-10T14:00:00Z"
+                      updated_at: "2023-03-12T16:30:00Z"
+        '403':
+          description: Usuário não possui acesso a esta corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ACCESS_DENIED
+        '404':
+          description: Corporação não encontrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
+    post:
+      tags:
+        - Corporações
+      summary: Adicionar membro à corporação
+      description: |
+        Adiciona um novo membro a uma corporação, criando um novo usuário (se ainda não existir) ou vinculando um usuário já registrado no sistema Brise Cloud.
+
+        - Se o usuário ainda **não existir**, será criado com `user_status = pending` (aguardando ativação da conta) e o vínculo já ativo (`member_status = active`).  
+        - Se o usuário já **existir**, será vinculado inicialmente com `member_status = pending`, aguardando a aceitação do convite.  
+        - O vínculo só se torna efetivo quando o usuário aceita o convite, momento em que `member_status = active`.  
+
+        O `user_status` representa o estado da conta do usuário no sistema, enquanto o `member_status` representa apenas a relação do usuário com a corporação.  
+
+        > ⚠️ **Nota:** 
+        > Apenas usuários **administradores** da corporação podem adicionar novos membros.
+      operationId: addCorporationMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação
+      requestBody:
+        description: Dados do usuário a ser adicionado como membro
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: E-mail do usuário a ser adicionado (deve estar registrado no sistema)
+                role:
+                  type: string
+                  enum: [ 'admin', 'user' ]
+                  description: Papel do usuário na corporação (admin ou user)
+            examples:
+                addMemberRequest:
+                  summary: Exemplo de requisição para adicionar membro
+                  value:
+                    email: "pedro.rabello@empresa.com"
+                    role: admin
+      responses:
+        '201':
+          description: Membro adicionado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorporateMemberResponse'
+        '400':
+          description: Requisição inválida. Campos ausentes ou incorretos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Usuário não possui acesso a esta corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ACCESS_DENIED
+        '404':
+          description: Corporação ou usuário não encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
+        '409':
+          description: Conflito, usuário já é membro da corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_ALREADY_MEMBER
+            
+
+  /applications:
+    post:
+      tags:
+        - Aplicações
+      summary: Solicitar cadastro
+      description: |
+        Permite que um usuário registrado no Brise Cloud solicite o cadastro de uma aplicação
+        que poderá interagir com a API via OAuth2. Após a análise da equipe, será atribuído
+        um `client_id` e `client_secret`.
+
+        > ℹ️ Observações:
+        > - O usuário deve existir no Brise Cloud.
+        > - A solicitação será criada com status `pending` até ser avaliada.
+        > - Campos obrigatórios: `name`, `email`, `contact_name`, `contact_phone`.
+
+        > 🚨 **Nota Importante:**  
+        > Quando houver a plataforma implementada as solicitações deverão ser atraves dela e por tanto respeitando as regras de segurança, deixando de ser um endpoint publico.
+      operationId: createApplication
+      requestBody:
+        description: Dados da aplicação a ser registrada
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - contact_name
+                - contact_phone
+              properties:
+                name:
+                  type: string
+                  description: Nome da aplicação
+                  example: "Meu Sistema de Gestão"
+                email:
+                  type: string
+                  format: email
+                  description: E-mail do proprietário (usuário Brise Cloud)
+                  example: "usuario@exemplo.com"
+                contact_name:
+                  type: string
+                  description: Nome de contato da aplicação
+                  example: "João Silva"
+                contact_phone:
+                  type: string
+                  description: Telefone de contato da aplicação
+                  example: "+55 (11) 99999-9999"
+                redirect_uri:
+                  type: string
+                  description: URI de callback OAuth2 (opcional)
+                  example: "https://meuapp.com/oauth/callback"
+      responses:
+        '201':
+          description: Solicitação registrada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 501
+                  status:
+                    type: string
+                    enum: [pending, active, revoked]
+                    example: pending
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2025-09-24T14:00:00Z"
+                  message:
+                    type: string
+                    example: "Solicitação registrada com sucesso. A equipe irá analisar e liberar os dados."
+        '400':
+          description: Requisição inválida. Campos ausentes ou incorretos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuário não encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: USER_NOT_FOUND
+        '409':
+          description: Conflito, aplicação com mesmo nome ou e-mail já existe.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: APPLICATION_ALREADY_EXISTS
 
 components:
   securitySchemes:
@@ -532,6 +877,75 @@ components:
           tokenUrl: "https://brise.agst.com.br/api/v3/oauth/token"
   
   schemas:
+    Corporation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 301
+        name:
+          type: string
+          example: "Tech Solutions Ltda."
+        tax_id:
+          type: string
+          example: "12.345.678/0001-90"
+        owner_id:
+          type: integer
+          example: 101
+        status:
+          type: string
+          enum: [ 'active', 'suspended', 'deleted' ]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-09-22T15:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-10-01T10:00:00Z"
+    
+    CorporateMemberResponse:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          description: ID do usuário
+          example: 202
+        email:
+          type: string
+          description: E-mail do usuário
+          example: "pedro.rabello@empresa.com"
+        full_name:
+          type: string
+          description: Nome completo do usuário
+          example: "Pedro Rabello"
+        role:
+          type: string
+          enum: [owner, admin, user]
+          description: Papel do usuário na corporação (owner, admin ou user)
+          example: "admin"
+        member_status:
+          type: string
+          enum: [pending, active, rejected, revoked]
+          description: Status do vínculo do usuário com a corporação
+          example: pending
+        user_status:
+          type: string
+          enum: [active, pending, blocked]
+          description: Status da conta do usuário no sistema
+          example: active
+        created_at:
+          type: string
+          format: date-time
+          description: Data de criação do vínculo
+          example: "2023-01-01T12:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Data da última atualização do vínculo
+          example: "2023-01-10T15:30:00Z"
+
     ErrorResponse:
       type: object
       properties:
