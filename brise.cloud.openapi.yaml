@@ -577,6 +577,72 @@ paths:
                     type: string
                     example: CORPORATION_NOT_FOUND
 
+  /corporations/{corporation_id}/members:
+    get:
+      tags:
+        - Corporações
+      summary: Listar membros da corporação
+      description: |
+        Retorna a lista de usuários vinculados a uma corporação, incluindo o **owner** e os membros corporativos.  
+
+        > ⚠️ **Nota:** 
+        > Apenas usuários administradores da corporação podem acessar esta informação.
+      operationId: listCorporationMembers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação
+      responses:
+        '200':
+          description: Lista de membros retornada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CorporateMemberResponse'
+              examples:
+                memberList:
+                  summary: Exemplo de lista de membros de uma corporação
+                  value:
+                    - id: 202
+                      email: "pedro.dev@empresa.com"
+                      status: "active"
+                      role: "admin"
+                    - id: 203
+                      email: "maria.vendas@empresa.com"
+                      status: "active"
+                      role: "user"
+                    - id: 204
+                      email: "carlos.estagiario@empresa.com"
+                      status: "pending"
+                      role: "owner"
+        '403':
+          description: Usuário não possui acesso a esta corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: ACCESS_DENIED
+        '404':
+          description: Corporação não encontrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
+
   /applications:
     post:
       tags:
@@ -732,6 +798,21 @@ components:
           type: string
           format: date-time
           example: "2025-10-01T10:00:00Z"
+    
+    CorporateMemberResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+        status:
+          type: string
+          enum: [ 'active', 'pending', 'bloecked' ]
+        role:
+          type: string
+          enum: [ 'owner', 'admin', 'user' ]
 
     ErrorResponse:
       type: object
