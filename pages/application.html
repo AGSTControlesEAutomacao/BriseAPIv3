@@ -67,7 +67,7 @@
       messageBox.classList.add("hidden");
 
       try {
-        const res = await fetch("/api/applications", {
+        const res = await fetch("https://brise.agst.com.br/api/v3/applications", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
@@ -78,15 +78,15 @@
         messageBox.classList.remove("hidden");
 
         if (res.ok) {
-          // Sucesso
           messageBox.textContent = "✅ Solicitação registrada com sucesso. Você receberá uma mensagem com os dados assim que for processada.";
           messageBox.className = "mt-4 p-3 rounded-md bg-green-100 text-green-800";
         } else if (res.status === 404 && result.error === "USER_NOT_FOUND") {
-          // Usuário não existente
           messageBox.textContent = "⚠️ O e-mail deve ser de uma conta já cadastrada no Brise Cloud.";
           messageBox.className = "mt-4 p-3 rounded-md bg-red-100 text-red-800";
+        } else if (res.status === 409 && result.error === "APPLICATION_ALREADY_EXISTS") {
+          messageBox.textContent = "⚠️ Já existe uma aplicação cadastrada com este nome ou e-mail. Por favor, utilize outro nome ou contate o suporte.";
+          messageBox.className = "mt-4 p-3 rounded-md bg-yellow-100 text-yellow-800";
         } else {
-          // Outro erro
           messageBox.textContent = "⚠️ Ocorreu um erro ao processar a solicitação.";
           messageBox.className = "mt-4 p-3 rounded-md bg-yellow-100 text-yellow-800";
         }
