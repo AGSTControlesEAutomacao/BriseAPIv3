@@ -43,7 +43,7 @@ info:
     2. Obtenha `client_id` e `client_secret`
     3. Inicie o fluxo OAuth2 ou gere um JWT
     4. Inclua o token nas requisições autenticadas
-    
+
 servers:
   - url: "https://brise.agst.com.br/api/v3"
     description: Servidor de Produção
@@ -61,7 +61,7 @@ tags:
     description: |
       Agrupa os conjuntos de endpoints responsáveis pelo gerenciamento de corporações no sistema.  
 
-      Permite criar, consultar e manter informações das corporações, bem como gerenciar o vínculo entre usuários e suas respectivas organizações.  
+      Permite criar, consultar e manter informações das corporações, bem como gerenciar o vínculo entre usuários e suas respectivas organizações.
   - name: Aplicações
     description: |
       Agrupa os endpoints responsáveis pelo cadastro e gerenciamento de aplicações que poderão interagir com a API Brise Cloud via OAuth2.  
@@ -112,14 +112,14 @@ paths:
                   format: password
                   description: Senha do usuário (mínimo 8 caracteres)
             examples:
-                createUserRequest:
-                  summary: Exemplo de requisição para criação de usuário
-                  value:
-                    email: "joao.silva@exemplo.com"
-                    full_name: "João Silva"
-                    password: "senhaSegura123"
+              createUserRequest:
+                summary: Exemplo de requisição para criação de usuário
+                value:
+                  email: "joao.silva@exemplo.com"
+                  full_name: "João Silva"
+                  password: "senhaSegura123"
       responses:
-        '201':
+        "201":
           description: Usuário criado com sucesso.
           content:
             application/json:
@@ -140,13 +140,13 @@ paths:
                     format: date-time
                     readOnly: true
                     example: "2025-09-09T10:00:00Z"
-        '400':
+        "400":
           description: Requisição inválida. Verifique os dados enviados.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
           description: Conflito. O e-mail já está em uso.
           content:
             application/json:
@@ -192,13 +192,13 @@ paths:
                   type: string
                   description: Código de verificação recebido por e-mail
             examples:
-                activateUserRequest:
-                  summary: Exemplo de requisição para ativação de usuário
-                  value:
-                    email: "joao.silva@exemplo.com"
-                    token: "123456"
+              activateUserRequest:
+                summary: Exemplo de requisição para ativação de usuário
+                value:
+                  email: "joao.silva@exemplo.com"
+                  token: "123456"
       responses:
-        '200':
+        "200":
           description: Usuário ativado com sucesso.
           content:
             application/json:
@@ -216,13 +216,13 @@ paths:
                     type: string
                     format: date-time
                     example: "2025-09-22T14:00:00Z"
-        '400':
+        "400":
           description: Requisição inválida. Token ou e-mail ausente ou incorreto.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
           description: Token inválido.
           content:
             application/json:
@@ -270,7 +270,7 @@ paths:
                 value:
                   email: "joao.silva@exemplo.com"
       responses:
-        '200':
+        "200":
           description: Novo token de ativação enviado com sucesso.
           content:
             application/json:
@@ -280,7 +280,7 @@ paths:
                   message:
                     type: string
                     example: "Novo token de ativação enviado com sucesso para joao.silva@exemplo.com"
-        '400':
+        "400":
           description: Requisição inválida. E-mail ausente ou formato incorreto.
           content:
             application/json:
@@ -290,7 +290,7 @@ paths:
                   error:
                     type: string
                     example: INVALID_REQUEST
-        '404':
+        "404":
           description: Usuário não encontrado ou já ativo.
           content:
             application/json:
@@ -338,13 +338,13 @@ paths:
                   format: password
                   description: Senha do usuário
             examples:
-                loginRequest:
-                  summary: Exemplo de requisição para autenticação de usuário
-                  value:
-                    email: "joao.silva@exemplo.com"
-                    password: "senhaSegura123"
+              loginRequest:
+                summary: Exemplo de requisição para autenticação de usuário
+                value:
+                  email: "joao.silva@exemplo.com"
+                  password: "senhaSegura123"
       responses:
-        '200':
+        "200":
           description: Login realizado com sucesso.
           content:
             application/json:
@@ -369,15 +369,15 @@ paths:
                     type: string
                     description: Tipo do token emitido
                     example: "Bearer"
-        '400':
+        "400":
           description: Requisição inválida. Campos obrigatórios ausentes ou formato incorreto.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
           description: |
-            Credenciais inválidas ou usuário não ativo.  
+            Credenciais inválidas ou usuário não ativo.
           content:
             application/json:
               schema:
@@ -402,15 +402,15 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-      - in: header
-        name: Authorization
-        required: true
-        description: Token de autenticação no formato `Bearer <access_token>`
-        schema:
-          type: string
-          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        - in: header
+          name: Authorization
+          required: true
+          description: Token de autenticação no formato `Bearer <access_token>`
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
       responses:
-        '200':
+        "200":
           description: Token válido.
           content:
             application/json:
@@ -422,9 +422,9 @@ paths:
                     format: int64
                     description: Tempo em segundos para expiração do token de acesso
                     example: 3600
-        '401':
+        "401":
           description: |
-            Token inválido ou expirado.  
+            Token inválido ou expirado.
           content:
             application/json:
               schema:
@@ -445,7 +445,7 @@ paths:
 
         O usuário autenticado que realiza a requisição é automaticamente convertido em um **usuário corporativo**, tornando-se o **owner** da corporação.  
 
-        O vínculo entre usuário e corporação é estabelecido internamente pela API, e o campo `owner_id` é definido de forma automática, sem necessidade de envio pelo cliente.  
+        O vínculo entre usuário e corporação é estabelecido internamente pela API, e o campo `owner_id` é definido de forma automática, sem necessidade de envio pelo cliente.
       operationId: createCorporation
       security:
         - bearerAuth: []
@@ -469,7 +469,7 @@ paths:
                   description: CNPJ da corporação
                   example: "12.345.678/0001-90"
       responses:
-        '201':
+        "201":
           description: Corporação criada com sucesso.
           content:
             application/json:
@@ -481,19 +481,19 @@ paths:
                     example: 301
                   status:
                     type: string
-                    enum: [ 'active', 'suspended', 'deleted' ]
+                    enum: ["active", "suspended", "deleted"]
                     example: active
                   created_at:
                     type: string
                     format: date-time
                     example: "2025-09-22T15:30:00Z"
-        '400':
+        "400":
           description: Requisição inválida, dados ausentes ou incorretos.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
           description: Conflito, corporação com mesmo CNPJ já existe.
           content:
             application/json:
@@ -503,7 +503,7 @@ paths:
                   error:
                     type: string
                     example: CORPORATION_ALREADY_EXISTS
-        '401':
+        "401":
           description: Não autorizado (token ausente ou inválido).
           content:
             application/json:
@@ -513,7 +513,7 @@ paths:
                   error:
                     type: string
                     example: INVALID_TOKEN
-  
+
   /corporations/{corporation_id}:
     get:
       tags:
@@ -522,7 +522,7 @@ paths:
       description: |
         Retorna as informações detalhadas de uma corporação específica no Brise Cloud.
 
-        O usuário precisa estar associado à corporação como proprietário ou administrador para acessá-la.  
+        O usuário precisa estar associado à corporação como proprietário ou administrador para acessá-la.
       operationId: getCorporationById
       security:
         - bearerAuth: []
@@ -534,7 +534,7 @@ paths:
             type: integer
           description: ID da corporação
       responses:
-        '200':
+        "200":
           description: Dados da corporação retornados com sucesso.
           content:
             application/json:
@@ -555,7 +555,7 @@ paths:
                     example: 101
                   status:
                     type: string
-                    enum: [ 'active', 'suspended', 'deleted' ]
+                    enum: ["active", "suspended", "deleted"]
                     example: active
                   created_at:
                     type: string
@@ -565,13 +565,13 @@ paths:
                     type: string
                     format: date-time
                     example: "2025-10-01T10:00:00Z"
-        '400':
+        "400":
           description: Requisição inválida. Campos ausentes ou incorretos.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
           description: Corporação não encontrada.
           content:
             application/json:
@@ -603,7 +603,7 @@ paths:
             type: integer
           description: ID da corporação
       responses:
-        '200':
+        "200":
           description: Lista de membros retornada com sucesso.
           content:
             application/json:
@@ -672,7 +672,7 @@ paths:
                       user_status: "active"
                       created_at: "2023-03-10T14:00:00Z"
                       updated_at: "2023-03-12T16:30:00Z"
-        '403':
+        "403":
           description: Usuário não possui acesso a esta corporação.
           content:
             application/json:
@@ -682,7 +682,7 @@ paths:
                   error:
                     type: string
                     example: ACCESS_DENIED
-        '404':
+        "404":
           description: Corporação não encontrada.
           content:
             application/json:
@@ -744,12 +744,12 @@ paths:
                   example: "senhaSegura123"
                 role:
                   type: string
-                  enum: [ 'admin', 'user' ]
+                  enum: ["admin", "user"]
                   description: Papel do usuário na corporação (admin ou user)
                   example: "admin"
-                
+
       responses:
-        '201':
+        "201":
           description: Membro adicionado com sucesso.
           content:
             application/json:
@@ -775,13 +775,13 @@ paths:
                     format: date-time
                     description: Data de criação do vínculo
                     example: "2023-01-01T12:00:00Z"
-        '400':
+        "400":
           description: Requisição inválida. Campos ausentes ou incorretos.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
           description: Usuário não possui acesso a esta corporação.
           content:
             application/json:
@@ -791,7 +791,7 @@ paths:
                   error:
                     type: string
                     example: ACCESS_DENIED
-        '404':
+        "404":
           description: Corporação ou usuário não encontrado.
           content:
             application/json:
@@ -801,7 +801,7 @@ paths:
                   error:
                     type: string
                     example: CORPORATION_NOT_FOUND
-        '409':
+        "409":
           description: Conflito, usuário já é membro da corporação.
           content:
             application/json:
@@ -811,7 +811,6 @@ paths:
                   error:
                     type: string
                     example: USER_ALREADY_MEMBER
-            
 
   /applications:
     post:
@@ -866,7 +865,7 @@ paths:
                   description: URI de callback OAuth2 (opcional)
                   example: "https://meuapp.com/oauth/callback"
       responses:
-        '201':
+        "201":
           description: Solicitação registrada com sucesso.
           content:
             application/json:
@@ -887,13 +886,13 @@ paths:
                   message:
                     type: string
                     example: "Solicitação registrada com sucesso. A equipe irá analisar e liberar os dados."
-        '400':
+        "400":
           description: Requisição inválida. Campos ausentes ou incorretos.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
           description: Usuário não encontrado.
           content:
             application/json:
@@ -903,7 +902,7 @@ paths:
                   error:
                     type: string
                     example: USER_NOT_FOUND
-        '409':
+        "409":
           description: Conflito, aplicação com mesmo nome ou e-mail já existe.
           content:
             application/json:
@@ -923,23 +922,23 @@ components:
       bearerFormat: JWT
       description: |
         O token de acesso JWT deve ser enviado no cabeçalho `Authorization` da sua requisição autenticadas.
-        
+
         ```
         Authorization: Bearer <seu-token>
         ```
 
-        Tokens têm vida curta e devem ser renovados conforme necessário.  
+        Tokens têm vida curta e devem ser renovados conforme necessário.
     oauth2:
       type: oauth2
       description: |
         Este esquema de segurança segue o padrão **OAuth 2.0**, permitindo que aplicativos de terceiros acessem recursos em nome do usuário sem expor a senha diretamente.  
 
-        O fluxo `authorizationCode` é o mais recomendado, pois garante maior segurança ao usuário e ao cliente.  
+        O fluxo `authorizationCode` é o mais recomendado, pois garante maior segurança ao usuário e ao cliente.
       flows:
         authorizationCode:
           authorizationUrl: "https://brise.agst.com.br/api/v3/oauth/authorize"
           tokenUrl: "https://brise.agst.com.br/api/v3/oauth/token"
-  
+
   schemas:
     ErrorResponse:
       type: object
