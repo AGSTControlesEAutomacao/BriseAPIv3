@@ -513,6 +513,70 @@ paths:
                   error:
                     type: string
                     example: INVALID_TOKEN
+    get:
+      tags:
+        - Corporações
+      summary: Listar corporações
+      description: |
+        Retorna a lista de corporações às quais o usuário autenticado está vinculado, seja como **owner** ou como membro corporativo.
+      operationId: listCorporations
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de corporações retornada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    tax_id:
+                      type: string
+                    owner_id:
+                      type: integer
+                    status:
+                      type: string
+                      enum: ["active", "suspended", "deleted"]
+                    created_at:
+                      type: string
+                      format: date-time
+                    updated_at:
+                      type: string
+                      format: date-time
+              examples:
+                corporationList:
+                  summary: Exemplo de lista de corporações
+                  value:
+                    - id: 301
+                      name: "Tech Solutions Ltda."
+                      tax_id: "12.345.678/0001-90"
+                      owner_id: 101
+                      status: active
+                      created_at: "2025-09-22T15:30:00Z"
+                      updated_at: "2025-10-01T10:00:00Z"
+                    - id: 302
+                      name: "InovaTech S.A."
+                      tax_id: "98.765.432/0001-12"
+                      owner_id: 102
+                      status: suspended
+                      created_at: "2024-05-15T09:20:00Z"
+                      updated_at: "2025-08-30T14:45:00Z"
+        "401":
+          description: Não autorizado (token ausente ou inválido).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_TOKEN
 
   /corporations/{corporation_id}:
     get:
