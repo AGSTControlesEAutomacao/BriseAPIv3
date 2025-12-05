@@ -984,6 +984,10 @@ paths:
                   full_name:
                     type: string
                     example: "João Silva"
+                  account_type:
+                    type: string
+                    enum: [personal, corporate]
+                    example: personal
                   status:
                     type: string
                     enum: [pending, active, blocked]
