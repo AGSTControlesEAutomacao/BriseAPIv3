@@ -1078,7 +1078,7 @@ paths:
             description: Senha atual do usuário
             example: "MinhaSenha123!"
       responses:
-        "202":
+        "204":
           description: Exclusão aceita
           content:
             application/json:
@@ -1396,6 +1396,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Corporação não encontrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
+    delete:
+      tags:
+        - Corporações
+      summary: Excluir corporação 🚩Adicionado
+      description: |
+        Exclui permanentemente uma corporação com anonimização imediata de dados. Esta ação é irreversível.
+
+        Apenas o **owner** da corporação tem permissão para realizar esta operação.
+      operationId: deleteCorporation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação a ser excluída
+      responses:
+        "204":
+          description: Exclusão aceita
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    enum: [DELETION_SUBMITTED]
+        "403":
+          description: Acesso negado. O usuário não é o owner da corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: FORBIDDEN_ACCESS
         "404":
           description: Corporação não encontrada.
           content:
