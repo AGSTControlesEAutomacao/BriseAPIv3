@@ -15,7 +15,7 @@ info:
     Todas as requisições e respostas utilizam o formato **JSON**, garantindo interoperabilidade e facilidade de processamento em diferentes plataformas.
 
     > Além da solução remota, a **Brise LAN API** oferece comunicação direta com os dispositivos Brise dentro da mesma rede local, sem dependência de conexão com a internet.
-    > 
+    > Documentação LAN API
     > Essa API é ideal para cenários onde:
     > - A conectividade com a internet não é confiável ou aceitável.
     > - Baixa latência é essencial.
@@ -1676,6 +1676,109 @@ paths:
                   error:
                     type: string
                     example: APPLICATION_ALREADY_EXISTS
+
+  /subscriptions/claim:
+  post:
+    tags:
+      - Assinaturas
+    summary: Aplicar voucher de assinatura
+    description: |
+      Aplica um voucher à conta do usuário autenticado, ativando o acesso ao serviço correspondente por tempo limitado.
+
+      > ⚠️ O voucher deve estar **ativo** e **não exceder** o número máximo de ativações permitidas.
+    operationId: claimSubscription
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - voucher_code
+            properties:
+              voucher_code:
+                type: string
+                description: Código do voucher recebido após a compra.
+            example:
+              voucher_code: "BRISE-8KZ2-HUQ9"
+    responses:
+      "201":
+        description: Voucher aplicado com sucesso.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subscription_id:
+                  type: integer
+                  example: 12
+                service_code:
+                  type: string
+                  example: "WEB_DASHBOARD"
+                expires_at:
+                  type: string
+                  format: date-time
+                  example: "2025-11-09T13:00:00Z"
+      "400":
+        description: Voucher inválido ou já expirado.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: INVALID_VOUCHER
+                message:
+                  type: string
+                  example: "O voucher informado é inválido ou já atingiu o limite de ativações."
+      "401":
+        description: Autenticação ausente ou inválida.
+      "409":
+        description: Voucher já aplicado pelo usuário.
+
+/subscriptions/me:
+  get:
+    tags:
+      - Assinaturas
+    summary: Listar vouchers aplicados pelo usuário
+    description: |
+      Retorna a lista de assinaturas ativas e expiradas associadas ao usuário autenticado.
+    operationId: listUserSubscriptions
+    security:
+      - bearerAuth: []
+    responses:
+      "200":
+        description: Lista de assinaturas encontradas.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  subscription_id:
+                    type: integer
+                    example: 12
+                  service_code:
+                    type: string
+                    example: "WEB_DASHBOARD"
+                  status:
+                    type: string
+                    enum: [active, expired, pending]
+                    example: active
+                  activated_at:
+                    type: string
+                    format: date-time
+                    example: "2025-10-09T13:00:00Z"
+                  expires_at:
+                    type: string
+                    format: date-time
+                    example: "2025-11-09T13:00:00Z"
+      "401":
+        description: Autenticação ausente ou inválida.
 
 components:
   securitySchemes:
