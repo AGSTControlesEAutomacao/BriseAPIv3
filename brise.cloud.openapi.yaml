@@ -1406,6 +1406,91 @@ paths:
                   error:
                     type: string
                     example: CORPORATION_NOT_FOUND
+    patch:
+      tags:
+        - Corporações
+      summary: Transferir corporação 🚩Adicionado
+      description: |
+        Transfere a propriedade de uma corporação para outro usuário.
+
+        > ⚠️ **Atenção:** Esta é uma operação crítica e irreversível. O usuário que inicia a transferência deve ser o **owner atual** da corporação e deve confirmar a ação fornecendo sua senha.
+
+        O novo proprietário (`new_owner_id`) deve ser um usuário existente no sistema.
+        Após a transferência, o antigo proprietário se tornará um membro regular da corporação (ou um administrador, ou deixa de ser membro).
+
+        O novo proprietariao deve ser menbro ativo da coporação? Ele deve aceitar esta transferência?
+      operationId: transferCorporationOwnership
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação para a qual a propriedade será transferida
+      requestBody:
+        description: Dados para a transferência de propriedade
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - new_owner_id
+                - current_owner_password
+              properties:
+                new_owner_id:
+                  type: integer
+                  description: ID do usuário que se tornará o novo proprietário da corporação.
+                  example: 102
+                current_owner_password:
+                  type: string
+                  format: password
+                  description: Senha do proprietário atual para confirmar a transferência.
+            examples:
+              transferOwnershipRequest:
+                summary: Exemplo de requisição para transferir propriedade
+                value:
+                  new_owner_id: 102
+                  current_owner_password: "SenhaDoOwnerAtual123!"
+      responses:
+        "200":
+          description: Propriedade da corporação transferida com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: OWNERSHIP_TRANSFERRED_SUCCESSFULLY
+        "400":
+          description: "Requisição inválida (ex: senha incorreta, novo proprietário inválido)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Acesso negado. O usuário autenticado não é o owner atual da corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: FORBIDDEN_ACCESS
+        "404":
+          description: Corporação ou novo proprietário não encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
     delete:
       tags:
         - Corporações
