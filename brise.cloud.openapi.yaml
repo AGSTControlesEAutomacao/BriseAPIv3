@@ -382,6 +382,7 @@ paths:
         >- Um token de ativação é enviado para o e-mail informado no cadastro.  
         >- O token deve ser utilizado em outro endpoint para ativar a conta.  
         >- Contas corporativas devem ser criadas por administradores de organizações.
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: createUser
@@ -597,6 +598,7 @@ paths:
         > - O token de ativação expira após 7 dias.  
         > - A qualquer momento, antes ou depois de expirar, pode ser solicitado o reenvio do token através de outro endpoint.  
         > - Após a ativação, o status do usuário passa de `pending` para `active`.
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: activateUser
@@ -673,8 +675,10 @@ paths:
         > - O token antigo é invalidado assim que o novo é gerado.  
         > - Pode ser solicitado a qualquer momento, mesmo que o token anterior tenha expirado.  
         > - Após receber o novo token, o usuário deve utilizá-lo para ativar sua conta através do endpoint `/users/activate`.
+        >
         > 🛡️ **Segurança:**  
         > Aplicar **rate limiting** neste endpoint para prevenir abuso (envio massivo de e-mails).
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: resendActivationToken
@@ -738,8 +742,10 @@ paths:
         > ℹ️ **Observações:**
         > - O token enviado por e-mail tem um tempo de expiração curto (ex: 1 hora).
         > - Para evitar que o endpoint seja usado para verificar a existência de e-mails no sistema, retornar uma resposta de sucesso genérica.
+        >
         > 🛡️ **Segurança:**  
         > Aplicar **rate limiting** neste endpoint para prevenir abuso (envio massivo de e-mails).
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
 
@@ -1050,6 +1056,65 @@ paths:
                     type: string
                     example: INVALID_CREDENTIALS
                     enum: [INVALID_CREDENTIALS, USER_BLOCKED, USER_PENDING]
+    delete:
+      tags:
+        - Usuários
+      summary: Excluir usuário 🚩Adicionado
+      description: |
+        Exclui permanentemente a conta do usuário autenticado com anonimização imediata de dados pessoais.
+        Ação irreversível. Requer a senha atual via query parameter como prova de identidade.
+
+        > 🛡️ **Segurança:** A senha pode aparecer em logs de acesso (Nginx, ALB, Cloudflare, etc.) expondo este dado.
+      operationId: deleteCurrentUserAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: password
+          in: query
+          required: true
+          schema:
+            type: string
+            format: password
+            description: Senha atual do usuário
+            example: "MinhaSenha123!"
+      responses:
+        "202":
+          description: Exclusão aceita
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    enum: [DELETION_SUBMITTED]
+        "400":
+          description: Requisição inválida. Campos obrigatórios ausentes ou formato incorreto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: INVALID_CREDENTIALS
+                    enum: [INVALID_CREDENTIALS, USER_BLOCKED, USER_PENDING]
+        "403":
+          description: "Conflito (ex: owner único de corporação)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum: [OWNER_CONFLICT]
 
   /users/login:
     post:
@@ -1064,6 +1129,7 @@ paths:
         > - Apenas usuários com status `active` podem se autenticar.  
         > - Usuários com status `pending` iniciaram automaticamente o processo de ativação, e um código de ativação é enviado para o e-mail cadastrado.  
         > - Usuários com status `blocked` não podem realizar login e receberão uma mensagem de erro apropriada.
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: loginUser
@@ -1709,7 +1775,7 @@ components:
       properties:
         error:
           type: string
-          example: INVALID_REQUEST
+          enum: [INVALID_REQUEST]
     TokenRequestAuthorizationCode:
       type: object
       properties:
