@@ -1088,12 +1088,6 @@ paths:
                   message:
                     type: string
                     enum: [DELETION_SUBMITTED]
-        "400":
-          description: Requisição inválida. Campos obrigatórios ausentes ou formato incorreto.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: Não autorizado
           content:
@@ -1103,9 +1097,8 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: INVALID_CREDENTIALS
-                    enum: [INVALID_CREDENTIALS, USER_BLOCKED, USER_PENDING]
-        "403":
+                    enum: [INVALID_CREDENTIALS]
+        "409":
           description: "Conflito (ex: owner único de corporação)"
           content:
             application/json:
