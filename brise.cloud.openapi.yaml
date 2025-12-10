@@ -1080,14 +1080,6 @@ paths:
       responses:
         "204":
           description: Exclusão aceita
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    enum: [DELETION_SUBMITTED]
         "401":
           description: Não autorizado
           content:
@@ -1512,14 +1504,6 @@ paths:
       responses:
         "204":
           description: Exclusão aceita
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    enum: [DELETION_SUBMITTED]
         "403":
           description: Acesso negado. O usuário não é o owner da corporação.
           content:
