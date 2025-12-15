@@ -1061,8 +1061,8 @@ paths:
         - Usuários
       summary: Excluir usuário 🚩Adicionado
       description: |
-        Exclui permanentemente a conta do usuário autenticado com anonimização imediata de dados pessoais.
-        Ação irreversível. Requer a senha atual via query parameter como prova de identidade.
+        Exclui permanentemente a conta do usuário autenticado. Ação irreversível.
+        Requer a senha atual via query parameter como prova de identidade.
 
         > 🛡️ **Segurança:** A senha pode aparecer em logs de acesso (Nginx, ALB, Cloudflare, etc.) expondo este dado.
       operationId: deleteCurrentUserAccount
