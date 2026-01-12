@@ -382,6 +382,7 @@ paths:
         >- Um token de ativação é enviado para o e-mail informado no cadastro.  
         >- O token deve ser utilizado em outro endpoint para ativar a conta.  
         >- Contas corporativas devem ser criadas por administradores de organizações.
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: createUser
@@ -597,6 +598,7 @@ paths:
         > - O token de ativação expira após 7 dias.  
         > - A qualquer momento, antes ou depois de expirar, pode ser solicitado o reenvio do token através de outro endpoint.  
         > - Após a ativação, o status do usuário passa de `pending` para `active`.
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: activateUser
@@ -673,8 +675,10 @@ paths:
         > - O token antigo é invalidado assim que o novo é gerado.  
         > - Pode ser solicitado a qualquer momento, mesmo que o token anterior tenha expirado.  
         > - Após receber o novo token, o usuário deve utilizá-lo para ativar sua conta através do endpoint `/users/activate`.
+        >
         > 🛡️ **Segurança:**  
         > Aplicar **rate limiting** neste endpoint para prevenir abuso (envio massivo de e-mails).
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: resendActivationToken
@@ -738,8 +742,10 @@ paths:
         > ℹ️ **Observações:**
         > - O token enviado por e-mail tem um tempo de expiração curto (ex: 1 hora).
         > - Para evitar que o endpoint seja usado para verificar a existência de e-mails no sistema, retornar uma resposta de sucesso genérica.
+        >
         > 🛡️ **Segurança:**  
         > Aplicar **rate limiting** neste endpoint para prevenir abuso (envio massivo de e-mails).
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
 
@@ -955,10 +961,55 @@ paths:
                     enum: [INVALID_CREDENTIALS, USER_BLOCKED, USER_PENDING]
 
   /users/me:
+    get:
+      tags:
+        - Usuários
+      summary: Obter perfil 🚩Adicionado
+      description: |
+        Retorna as informações do perfil do usuário autenticado.
+
+        > 🛡️ **Segurança:** Esta operação deve ser realizada por um usuário logado e autenticado.
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados do usuário retornados com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 101
+                  email:
+                    type: string
+                    format: email
+                    example: "joao.silva@exemplo.com"
+                  full_name:
+                    type: string
+                    example: "João Silva"
+                  account_type:
+                    type: string
+                    enum: [personal, corporate]
+                    example: personal
+                  status:
+                    type: string
+                    enum: [pending, active, blocked]
+                    example: active
+                  updated_at:
+                    type: string
+                    format: date-time
+                    example: "2025-09-10T15:30:00Z"
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2025-09-09T10:00:00Z"
     patch:
       tags:
         - Usuários
-      summary: Atualizar dados
+      summary: Atualizar perfil ✏️Alterado
       description: |
         Permite que o usuário autenticado atualize suas próprias informações de perfil, como nome completo.
 
@@ -1005,6 +1056,50 @@ paths:
                     type: string
                     example: INVALID_CREDENTIALS
                     enum: [INVALID_CREDENTIALS, USER_BLOCKED, USER_PENDING]
+    delete:
+      tags:
+        - Usuários
+      summary: Excluir usuário 🚩Adicionado
+      description: |
+        Exclui permanentemente a conta do usuário autenticado. Ação irreversível.
+        Requer a senha atual via query parameter como prova de identidade.
+
+        > 🛡️ **Segurança:** A senha pode aparecer em logs de acesso (Nginx, ALB, Cloudflare, etc.) expondo este dado.
+      operationId: deleteCurrentUserAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: password
+          in: query
+          required: true
+          schema:
+            type: string
+            format: password
+            description: Senha atual do usuário
+            example: "MinhaSenha123!"
+      responses:
+        "204":
+          description: Exclusão aceita
+        "401":
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum: [INVALID_CREDENTIALS]
+        "409":
+          description: "Conflito (ex: owner único de corporação)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    enum: [OWNER_CONFLICT]
 
   /users/login:
     post:
@@ -1019,6 +1114,7 @@ paths:
         > - Apenas usuários com status `active` podem se autenticar.  
         > - Usuários com status `pending` iniciaram automaticamente o processo de ativação, e um código de ativação é enviado para o e-mail cadastrado.  
         > - Usuários com status `blocked` não podem realizar login e receberão uma mensagem de erro apropriada.
+        >
         > 🚨 **Nota Importante:**  
         > O path deste deve ser alterado para algo menos óbvio quando for para produção, para evitar spam e ataques de força bruta uma vez que não requer autenticação.
       operationId: loginUser
@@ -1292,6 +1388,132 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Corporação não encontrada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
+    patch:
+      tags:
+        - Corporações
+      summary: Transferir corporação 🚩Adicionado
+      description: |
+        Transfere a propriedade de uma corporação para outro usuário.
+
+        > ⚠️ **Atenção:** Esta é uma operação crítica e irreversível. O usuário que inicia a transferência deve ser o **owner atual** da corporação e deve confirmar a ação fornecendo sua senha.
+
+        O novo proprietário (`new_owner_id`) deve ser um usuário existente no sistema.
+        Após a transferência, o antigo proprietário se tornará um membro regular da corporação (ou um administrador, ou deixa de ser membro).
+
+        O novo proprietariao deve ser menbro ativo da coporação? Ele deve aceitar esta transferência?
+      operationId: transferCorporationOwnership
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação para a qual a propriedade será transferida
+      requestBody:
+        description: Dados para a transferência de propriedade
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - new_owner_id
+                - current_owner_password
+              properties:
+                new_owner_id:
+                  type: integer
+                  description: ID do usuário que se tornará o novo proprietário da corporação.
+                  example: 102
+                current_owner_password:
+                  type: string
+                  format: password
+                  description: Senha do proprietário atual para confirmar a transferência.
+            examples:
+              transferOwnershipRequest:
+                summary: Exemplo de requisição para transferir propriedade
+                value:
+                  new_owner_id: 102
+                  current_owner_password: "SenhaDoOwnerAtual123!"
+      responses:
+        "200":
+          description: Propriedade da corporação transferida com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: OWNERSHIP_TRANSFERRED_SUCCESSFULLY
+        "400":
+          description: "Requisição inválida (ex: senha incorreta, novo proprietário inválido)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Acesso negado. O usuário autenticado não é o owner atual da corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: FORBIDDEN_ACCESS
+        "404":
+          description: Corporação ou novo proprietário não encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: CORPORATION_NOT_FOUND
+    delete:
+      tags:
+        - Corporações
+      summary: Excluir corporação 🚩Adicionado
+      description: |
+        Exclui permanentemente uma corporação com anonimização imediata de dados. Esta ação é irreversível.
+
+        Apenas o **owner** da corporação tem permissão para realizar esta operação.
+      operationId: deleteCorporation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: corporation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID da corporação a ser excluída
+      responses:
+        "204":
+          description: Exclusão aceita
+        "403":
+          description: Acesso negado. O usuário não é o owner da corporação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: FORBIDDEN_ACCESS
         "404":
           description: Corporação não encontrada.
           content:
@@ -1664,7 +1886,7 @@ components:
       properties:
         error:
           type: string
-          example: INVALID_REQUEST
+          enum: [INVALID_REQUEST]
     TokenRequestAuthorizationCode:
       type: object
       properties:
