@@ -99,6 +99,9 @@ tags:
       > - Cada aplicação pertence a um usuário registrado (`owner_id`).  
       > - Após o cadastro, a aplicação fica com status `pending` até avaliação da equipe.  
       > - Após liberação, o sistema fornece `client_id` e `client_secret`.
+  - name: Sistema
+    description: |
+      Operações de manutenção e controle do dispositivo Brise.
 paths:
   /oauth/authorize:
     get:
@@ -1247,7 +1250,6 @@ paths:
                     type: string
                     example: INVALID_TOKEN
 
-
   /corporations:
     post:
       tags:
@@ -1913,6 +1915,85 @@ paths:
                   error:
                     type: string
                     example: APPLICATION_ALREADY_EXISTS
+
+  /system/update/{device}:
+    post:
+      tags:
+        - Sistema
+      summary: Atualização Download via Cloud 🔑
+      description: |
+        Envia um comando para o dispositivo (identificado pelo número de série) para que ele baixe e instale uma atualização de firmware a partir de uma URL.
+        O Brise Cloud encaminhará esta solicitação ao dispositivo.
+
+        > ⚠️ **Privado**: Este endpoint é de uso interno e não deve ser divulgado na documentação pública.
+      x-internal: true
+      operationId: systemUpdateByUrl
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: device
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Número de série do dispositivo a ser atualizado
+          example: "200000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL direta para download do arquivo binário (.bin)
+                  example: "https://brise.com.br/fw/v1.0.1_firmware.bin"
+      responses:
+        "202":
+          description: Comando de atualização aceito e encaminhado ao dispositivo.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Comando de atualização enviado para o dispositivo BRS123456789."
+        "400":
+          description: Requisição inválida (URL mal formatada, etc.).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Não autorizado (token ausente ou inválido).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Dispositivo não encontrado ou não está online.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: DEVICE_NOT_FOUND
+        "500":
+          description: Erro ao processar o comando no servidor Cloud.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   securitySchemes:
