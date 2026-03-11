@@ -45,6 +45,11 @@ servers:
 tags:
   - name: Rede
     description: Operações relacionadas à configuração e status da rede do dispositivo Brise.
+  - name: Sistema
+    description: |
+      Operações de manutenção e controle do sistema do dispositivo Brise.
+
+      > ⚠️ **Aviso**: Alguns endpoints desta categoria são de uso interno e não devem ser expostos publicamente.
 
 paths:
   /network/status:
@@ -385,6 +390,108 @@ paths:
                     type: string
                     description: Código do erro indicando que uma operação de varredura já está em execução.
                     example: ALREADY_IN_PROGRESS
+
+  /system/update:
+    post:
+      tags:
+        - Sistema
+      summary: Atualização Upload 🔑
+      description: |
+        Recebe um arquivo binário contendo o firmware a ser instalado no dispositivo.
+        Após o recebimento bem-sucedido, o arquivo será verificado, implementado e o dispositivo será reiniciado automaticamente.
+
+        > ⚠️ **Privado**: Este endpoint é de uso interno e não deve ser divulgado na documentação pública.
+      x-internal: true
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Arquivo binário de firmware (.bin)
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Upload concluído. O dispositivo iniciará a atualização e reiniciará em breve.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Firmware recebido. Reiniciando para atualização..."
+        "400":
+          description: Arquivo inválido ou corrompido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Erro interno durante o processo de atualização.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /system/update_url:
+    post:
+      tags:
+        - Sistema
+      summary: Atualização Download 🔑
+      description: |
+        Recebe a URL de um servidor remoto que contém o arquivo binário de firmware. 
+        O dispositivo fará o download do arquivo, verificará sua integridade, aplicará a atualização e reiniciará automaticamente.
+
+        > ⚠️ **Privado**: Este endpoint é de uso interno e não deve ser divulgado na documentação pública.
+      x-internal: true
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: URL direta para download do arquivo binário (.bin)
+                  example: "https://brise.com.br/fw/v1.0.1_firmware.bin"
+      responses:
+        "200":
+          description: Solicitação de download aceita. O dispositivo iniciará o download e a atualização em breve.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Download iniciado. O dispositivo reiniciará após a conclusão."
+        "400":
+          description: URL inválida ou inacessível.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Erro ao baixar ou processar a atualização.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   securitySchemes:
