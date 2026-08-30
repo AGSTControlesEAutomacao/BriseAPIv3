@@ -566,25 +566,21 @@ paths:
                   format: int32
                   minimum: 60
                   maximum: 86400
-                  nullable: true
+                  default: 3600
                   description: |
                     Validade pretendida do voucher, em segundos, contados a partir da emissão.
-
-                    > ⚠️ O firmware atual **ignora** este campo e aplica um TTL fixo de **3600 s** (1 hora). O prazo real vem sempre em `expires_at` na resposta. O campo é mantido no contrato para uma futura configuração de TTL pelo dispositivo.
                   example: 3600
                 grantee_email:
                   type: string
                   format: email
-                  nullable: true
                   description: |
-                    E‑mail do usuário que receberá o acesso. Opcional (pode ser desconhecido em Modo LAN). Não tem efeito de autorização — é copiado para o registro da Cloud e ajuda a identificar o acesso na gestão do proprietário.
-                  example: "maria@exemplo.com"
+                    E‑mail do usuário que receberá o acesso. Não tem efeito de autorização.
+                  example: "maria@brise.com.br"
                 path:
                   type: string
                   maxLength: 255
-                  nullable: true
                   description: |
-                    Sugestão, indicada por quem compartilha, de onde o equipamento deve ser posicionado na árvore de grupos do destinatário — caminho de grupos/subgrupos separados por `/` (ex.: `Matriz/Piso 2/Sala de Reuniões`). Opcional e apenas informativo: viaja assinado dentro do `voucher_code` e é devolvido no resgate; o app do destinatário cria os grupos que faltarem e pode ignorar ou ajustar. Sem efeito de autorização.
+                    Sugestão, indicada por quem compartilha, de onde o equipamento deve ser posicionado na árvore de grupos do destinatário — caminho de grupos/subgrupos separados por `/` (ex.: `Matriz/Piso 2/Sala de Reuniões`). Viaja assinado dentro do `voucher_code` e é devolvido no resgate; A aplicação do destinatário cria os grupos que faltarem e pode ignorar ou ajustar. Sem efeito de autorização.
                   example: "Matriz/Piso 2/Sala de Reuniões"
       responses:
         "201":
@@ -601,7 +597,7 @@ paths:
                     voucher_code: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9..."
                     device_id: 1234567890
                     role: operator
-                    grantee_email: "maria@exemplo.com"
+                    grantee_email: "maria@brise.com.br"
                     path: "Matriz/Piso 2/Sala de Reuniões"
                     uses_remaining: 1
                     created_at: "2026-08-29T12:00:00Z"
@@ -662,7 +658,7 @@ paths:
                       - voucher_id: "b3c1f5a0-2e77-4a1b-9c3d-8f0e1a2b3c4d"
                         device_id: 1234567890
                         role: operator
-                        grantee_email: "maria@exemplo.com"
+                        grantee_email: "maria@brise.com.br"
                         path: null
                         uses_remaining: 1
                         created_at: "2026-08-29T12:00:00Z"
@@ -714,9 +710,8 @@ paths:
                 grantee_email:
                   type: string
                   format: email
-                  nullable: true
                   description: E‑mail de quem está recebendo o acesso. Sobrescreve o `grantee_email` definido na emissão do voucher, quando enviado. Sem efeito de autorização.
-                  example: "maria@exemplo.com"
+                  example: "maria@brise.com.br"
       responses:
         "200":
           description: |
@@ -1027,7 +1022,7 @@ components:
           format: email
           nullable: true
           description: E‑mail do usuário que receberá o acesso, quando informado na emissão.
-          example: "maria@exemplo.com"
+          example: "maria@brise.com.br"
         uses_remaining:
           type: integer
           format: int32
