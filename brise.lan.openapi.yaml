@@ -1,7 +1,7 @@
 openapi: 3.0.4
 info:
   title: Brise LAN API
-  version: 3.0.0
+  version: 3.0.1
   contact:
     name: AGST
     email: ped@agst.com.br
@@ -50,6 +50,8 @@ tags:
       Operações de manutenção e controle do sistema do dispositivo Brise.
 
       > ⚠️ **Aviso**: Alguns endpoints desta categoria são de uso interno e não devem ser expostos publicamente.
+  - name: Rotinas
+    description: Gerenciamento de rotinas de automação executadas localmente pelo dispositivo.
 
 paths:
   /network/status:
@@ -150,12 +152,6 @@ paths:
                         type: string
                         description: Endereço MAC físico da interface Wi-Fi em modo AP.
                         example: "84:CC:A8:42:1F:7C"
-                      dns_ap:
-                        type: array
-                        description: Lista de servidores DNS configurados para o ponto de acesso.
-                        items:
-                          type: string
-                        example: "192.168.4.1"
 
                   eth:
                     type: object
@@ -215,7 +211,6 @@ paths:
                       netmask_ap: "255.255.255.0"
                       gateway_ap: "192.168.4.1"
                       mac_ap: "84:CC:A8:42:1F:7C"
-                      dns_ap: "192.168.4.1"
                     eth:
                       dhcp: false
                       ip_eth: "192.168.0.106"
@@ -232,16 +227,17 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /network/wifi:
-    put:
+    post:
       tags:
         - Rede
-      summary: Configura Wi-Fi
+      summary: Configura Wi-Fi ✏️Alterado
       description: |
         Define o SSID e a senha da rede Wi-Fi à qual o dispositivo Brise deve se conectar.  
         Após a atualização, o dispositivo tentará conectar automaticamente à nova rede.
 
         > ⚠️ Durante o processo de troca de rede, a conexão atual será interrompida.  
-        > O dispositivo aplicará as novas credenciais e reiniciará o módulo de rede.
+        > O dispositivo aplicará as novas credenciais e reiniciará o módulo de rede.  
+        > 🔑 **Privado:** No primeiro provisionamento, o dispositivo aceita a requisição sem Bearer Token e associa a configuração ao `owner` informado.
       security:
         - bearerAuth: []
       requestBody:
@@ -262,9 +258,16 @@ paths:
                   type: string
                   description: Senha da rede Wi-Fi. Deve conter entre 8 e 63 caracteres para redes WPA/WPA2/WPA3.
                   example: "12345678"
+                owner_id:
+                  type: string
+                  description: 🔑 Identificador do usuário proprietário. Obrigatório no primeiro provisionamento.
+                  example: "550e8400-e29b-41d4-a716-446655440000"
       responses:
         "200":
-          description: Configuração aplicada com sucesso.
+          description: |
+            Configuração aplicada com sucesso.
+
+            Durante o primeiro provisionamento, a resposta também fornece o Access Token que deverá ser utilizado pelo cliente nas requisições autenticadas subsequentes.
           content:
             application/json:
               schema:
@@ -274,11 +277,17 @@ paths:
                     type: boolean
                     description: Indica se a configuração foi aplicada corretamente.
                     example: true
+                  access_token:
+                    type: string
+                    description: |
+                      Access Token inicial do dispositivo. Retornado durante o primeiro provisionamento e utilizado para autenticar as requisições subsequentes.
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
               examples:
                 sucesso:
                   summary: Exemplo de sucesso
                   value:
                     success: true
+                    access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         "400":
           description: Requisição inválida. Verifique os dados enviados.
           content:
@@ -288,10 +297,13 @@ paths:
     get:
       tags:
         - Rede
-      summary: Lista redes Wi-Fi
+      summary: Lista redes Wi-Fi ✏️Alterado
       description: |
-        Retorna a lista mais recente de redes Wi-Fi detectadas pelo dispositivo.  
-        O dispositivo executa varreduras automáticas periodicamente (a cada 30 segundos), mantendo a lista atualizada em cache.
+        Retorna a lista mais recente de redes Wi-Fi armazenadas em cache pelo dispositivo.  
+
+        **Funcionamento da varredura:**
+        * Cada chamada a este endpoint aciona uma nova varredura em segundo plano para atualizar o cache que será entregue na requisição seguinte.
+        * Uma varredura automática também é executada sempre que um cliente se conecta diretamente ao Access Point (AP) do dispositivo.
       security:
         - bearerAuth: []
       responses:
@@ -344,58 +356,11 @@ paths:
                         security: "WPA3"
                         channel: 11
 
-  /network/wifi/scan:
-    post:
-      tags:
-        - Rede
-      summary: Scan Wi-Fi
-      description: |
-        Solicita ao dispositivo que execute imediatamente uma nova varredura Wi-Fi, atualizando o cache de redes observadas.  
-
-        > 🕒 A operação é assíncrona: a lista pode levar alguns segundos para refletir as novas redes detectadas.  
-        > Use `GET /network/wifi` para verificar quando o cache for atualizado.
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          description: Varredura iniciada com sucesso.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    description: Indica se a solicitação foi aceita.
-                    example: true
-                  started_at:
-                    type: string
-                    format: date-time
-                    description: Data e hora de início da varredura (UTC).
-                    example: "2025-10-31T10:21:00Z"
-              examples:
-                sucesso:
-                  summary: Exemplo de sucesso
-                  value:
-                    success: true
-                    started_at: "2025-10-31T10:21:00Z"
-        "409":
-          description: Já existe uma varredura em andamento.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: Código do erro indicando que uma operação de varredura já está em execução.
-                    example: ALREADY_IN_PROGRESS
-
   /system/update:
     post:
       tags:
         - Sistema
-      summary: Atualização Upload 🔑
+      summary: Atualização Upload 🔑🚩Adicionado
       description: |
         Recebe um arquivo binário contendo o firmware a ser instalado no dispositivo.
         Após o recebimento bem-sucedido, o arquivo será verificado, implementado e o dispositivo será reiniciado automaticamente.
@@ -443,7 +408,7 @@ paths:
     post:
       tags:
         - Sistema
-      summary: Atualização Download 🔑
+      summary: Atualização Download 🔑🚩Adicionado
       description: |
         Recebe a URL de um servidor remoto que contém o arquivo binário de firmware. 
         O dispositivo fará o download do arquivo, verificará sua integridade, aplicará a atualização e reiniciará automaticamente.
@@ -493,6 +458,73 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /automations:
+    post:
+      tags:
+        - Rotinas
+      summary: Cria, atualiza ou remove rotinas 🚩Adicionado
+      description: |
+        Permite criar, atualizar ou remover rotinas.
+
+        Regras:
+        - Objeto sem `id` ou diferente de todos: cria uma nova rotina.
+        - Objeto com `id` que não exista: atualiza a rotina existente.
+        - Objeto contendo apenas `id`: remove a rotina correspondente.
+        - Objeto contendo `id` e `idx`: reordena a ordem da rotina.
+        - Lista de objetos: executa operações em lote.
+
+        A resposta informa o resultado individual de cada operação.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/Routine"
+                - type: array
+                  items:
+                    $ref: "#/components/schemas/Routine"
+      responses:
+        "200":
+          description: Operação executada com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica se todas as operações foram processadas.
+                    example: true
+    get:
+      tags:
+        - Rotinas
+      summary: Lista rotinas 🚩Adicionado
+      description: |
+        Retorna todas as rotinas configuradas no dispositivo.
+
+        > ⚠️ Opcionalmente pode ser informado o parâmetro `id`  para retornar apenas uma rotina específica.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: false
+          description: Identificador da rotina.
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de rotinas.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Routine"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -513,3 +545,99 @@ components:
           type: string
           description: Código de erro representando o tipo de falha da requisição.
           example: INVALID_REQUEST
+
+    Routine:
+      type: object
+      description: Definição completa de uma rotina de automação.
+      properties:
+
+        id:
+          type: string
+          format: uuid
+          description: |
+            Identificador único da rotina.  
+            Quando omitido em uma criação, o dispositivo atribui automaticamente um novo identificador.  
+          example: "3044d20e-a02c-4a9a-8508-25f92599622e"
+
+        name:
+          type: string
+          description: Nome amigável da rotina.
+          example: "Turno da Noite"
+
+        en:
+          type: boolean
+          description: Define se a rotina está habilitada (enabled).
+          example: true
+
+        ex:
+          type: boolean
+          description: |
+            Quando verdadeiro, impede que outras rotinas sejam executadas simultaneamente (exclusive).
+          example: false
+
+        cond:
+          $ref: "#/components/schemas/RoutineConditions"
+
+        act:
+          type: array
+          description: Lista de ações executadas quando as condições forem satisfeitas.
+          items:
+            $ref: "#/components/schemas/RoutineAction"
+    
+    RoutineConditions:
+      type: object
+      description: Conjunto de condições necessárias para execução da rotina.
+      properties:
+
+        op:
+          type: string
+          description: Operador lógico utilizado para combinar os gatilhos.
+          enum:
+            - AND
+            - OR
+
+        tr:
+          type: array
+          description: Lista de gatilhos avaliados pela rotina.
+          items:
+            $ref: "#/components/schemas/RoutineTrigger"
+    
+    RoutineTrigger:
+      type: object
+      description: Gatilho que compõe a condição da rotina.
+      properties:
+        tp:
+          type: string
+          description: Tipo do gatilho.
+          example: "boot"
+        val:
+          type: integer
+          description: Valor associado ao gatilho.
+          example: 0
+    
+    RoutineAction:
+      type: object
+      description: |
+        Ação executada quando a condição da rotina for satisfeita.
+        Os campos específicos dependem do comando informado em `cmd`.
+      properties:
+        cmd:
+          type: string
+          description: Comando a ser executado.
+          example: "AC_SET"
+        fan:
+          type: integer
+          description: Velocidade do ventilador.
+          example: 1
+        md:
+          type: string
+          description: Modo de operação.
+          example: "cool"
+        pwr:
+          type: boolean
+          description: Estado da alimentação (ligado/desligado).
+          example: false
+        temp:
+          type: integer
+          description: Temperatura alvo.
+          example: 18
