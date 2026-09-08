@@ -883,29 +883,30 @@ paths:
     delete:
       tags:
         - Acesso
-      summary: Revoga acesso 🚩Adicionado
+      summary: Revoga Acesso 🚩Adicionado
       description: |
-        Revoga um acesso existente ao dispositivo.
+        Revoga o acesso de um usuário ao dispositivo.
 
-        Quando o token não é informado no corpo, o próprio acesso utilizado
-        para autenticar a requisição é revogado.
+        O `subject_id` corresponde ao identificador do usuário, o UUID gerado em Modo LAN ou o `user_id` da Cloud, registrado no claim `sub` do Access Token no momento do resgate (`POST /access/redeem`).
 
-        Quando um token é informado no corpo, o acesso correspondente é
-        revogado, desde que o usuário autenticado possua permissão para
-        realizar a operação.
+        Somente usuários com papel `manager` ou `owner` podem revogar o acesso de outros usuários.
       security:
         - bearerAuth: []
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - subject_id
               properties:
-                token:
+                subject_id:
                   type: string
-                  description: Token de acesso que será revogado. Quando não informado, o próprio token utilizado na autenticação da requisição será revogado.
-                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  format: uuid
+                  description: |
+                    Identificador único do usuário cujo acesso ao dispositivo será revogado. Corresponde ao claim `sub` do Access Token registrado no resgate (`POST /access/redeem`).
+                  example: "550e8400-e29b-41d4-a716-446655440000"
       responses:
         "200":
           description: Acesso revogado com sucesso.
@@ -919,7 +920,7 @@ paths:
                     description: Indica se o acesso foi revogado com sucesso.
                     example: true
         "400":
-          description: Token informado é inválido ou a requisição é inválida.
+          description: Requisição inválida. Verifique se o `subject_id` foi informado corretamente.
           content:
             application/json:
               schema:
@@ -931,11 +932,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: O usuário autenticado não possui permissão para revogar o acesso informado.
+          description: O usuário autenticado não possui permissão para revogar o acesso informado (`manager`/`owner` obrigatório).
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                negado:
+                  value:
+                    error: ACCESS_DENIED
+        "404":
+          description: Usuário não encontrado — o `subject_id` informado não possui acesso ativo neste dispositivo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                inexistente:
+                  value:
+                    error: USER_NOT_FOUND
 
 components:
   securitySchemes:
