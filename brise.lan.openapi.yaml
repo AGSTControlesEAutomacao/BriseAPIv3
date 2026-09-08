@@ -57,7 +57,7 @@ tags:
       Permite gerar vouchers para conceder acesso a outros usuários e resgatar esses vouchers para obter acesso ao dispositivo.
   - name: Rotinas
     description: Gerenciamento de rotinas de automação executadas localmente pelo dispositivo.
-  
+
 paths:
   /network/status:
     get:
@@ -675,7 +675,75 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-    
+    delete:
+      tags:
+        - Acesso
+      summary: Revoga Voucher 🚩Adicionado
+      description: |
+        Revoga (cancela) um voucher pendente emitido para o dispositivo, tornando-o inválido para qualquer resgate futuro.
+
+        Somente usuários com papel `manager` ou `owner` podem revogar vouchers emitidos pelo dispositivo.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - voucher_id
+              properties:
+                voucher_id:
+                  type: string
+                  format: uuid
+                  description: Identificador único do voucher a ser revogado.
+                  example: "b3c1f5a0-2e77-4a1b-9c3d-8f0e1a2b3c4d"
+      responses:
+        "200":
+          description: Voucher revogado com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica se o voucher foi revogado com sucesso.
+                    example: true
+        "400":
+          description: Requisição inválida. Verifique se o `voucher_id` foi informado corretamente.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Token de acesso ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: O token autenticado não tem privilégio para revogar vouchers (`manager`/`owner` obrigatório).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                negado:
+                  value:
+                    error: ACCESS_DENIED
+        "404":
+          description: Voucher não encontrado — pode ter expirado, já sido revogado ou nunca ter sido emitido por este dispositivo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                inexistente:
+                  value:
+                    error: VOUCHER_NOT_FOUND
+
   /access/redeem:
     post:
       tags:
@@ -893,13 +961,12 @@ components:
       type: object
       description: Definição completa de uma rotina de automação.
       properties:
-
         id:
           type: string
           format: uuid
           description: |
             Identificador único da rotina.  
-            Quando omitido em uma criação, o dispositivo atribui automaticamente um novo identificador.  
+            Quando omitido em uma criação, o dispositivo atribui automaticamente um novo identificador.
           example: "3044d20e-a02c-4a9a-8508-25f92599622e"
 
         name:
@@ -926,12 +993,11 @@ components:
           description: Lista de ações executadas quando as condições forem satisfeitas.
           items:
             $ref: "#/components/schemas/RoutineAction"
-    
+
     RoutineConditions:
       type: object
       description: Conjunto de condições necessárias para execução da rotina.
       properties:
-
         op:
           type: string
           description: Operador lógico utilizado para combinar os gatilhos.
@@ -944,7 +1010,7 @@ components:
           description: Lista de gatilhos avaliados pela rotina.
           items:
             $ref: "#/components/schemas/RoutineTrigger"
-    
+
     RoutineTrigger:
       type: object
       description: Gatilho que compõe a condição da rotina.
@@ -957,7 +1023,7 @@ components:
           type: integer
           description: Valor associado ao gatilho.
           example: 0
-    
+
     RoutineAction:
       type: object
       description: |
