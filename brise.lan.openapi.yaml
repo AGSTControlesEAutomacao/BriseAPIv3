@@ -467,18 +467,22 @@ paths:
     post:
       tags:
         - Rotinas
-      summary: Cria, atualiza ou remove rotinas 🚩Adicionado
+      summary: Cria, Edita ou Reordena Rotinas 🔑🚩Adicionado
       description: |
-        Permite criar, atualizar ou remover rotinas.
+        Realiza operações sobre rotinas de automação do dispositivo.
 
-        Regras:
-        - Objeto sem `id` ou diferente de todos: cria uma nova rotina.
-        - Objeto com `id` que não exista: atualiza a rotina existente.
-        - Objeto contendo apenas `id`: remove a rotina correspondente.
-        - Objeto contendo `id` e `idx`: reordena a ordem da rotina.
-        - Lista de objetos: executa operações em lote.
+        O comportamento depende do tipo de corpo enviado:
 
-        A resposta informa o resultado individual de cada operação.
+        **Objeto único** — executa uma operação pontual sobre uma rotina:
+
+        | Conteúdo do objeto | Operação |
+        |--------------------|----------|
+        | Sem `id` (ou `id` inexistente no dispositivo) | **Cria** nova rotina — o dispositivo atribui um `id` automaticamente |
+        | `id` existente + outros campos | **Atualiza** a rotina correspondente |
+        | `id` + `idx` | **Reordena** — move a rotina para a posição `idx` (0-based) na lista |
+
+        > 🔑 **Privado**: O envio de um array é de uso interno e não deve ser divulgado na documentação pública.
+        > O envio de um array **sobrescreve** todas as rotinas existentes no dispositivo. Use com cautela.
       security:
         - bearerAuth: []
       requestBody:
@@ -488,12 +492,77 @@ paths:
             schema:
               oneOf:
                 - $ref: "#/components/schemas/Routine"
+                - $ref: "#/components/schemas/RoutineReorderRequest"
                 - type: array
+                  description: |
+                    🔑 Uso interno. Substituição completa da lista de rotinas do dispositivo.
+                    Todas as rotinas existentes serão removidas e substituídas pelas do array.
                   items:
                     $ref: "#/components/schemas/Routine"
+            examples:
+              criar:
+                summary: Criar nova rotina
+                value:
+                  name: "Turno da Noite"
+                  en: true
+                  ex: false
+                  cond:
+                    op: AND
+                    tr:
+                      - tp: daily
+                        val: 1320
+                  act:
+                    - cmd: AC_SET
+                      pwr: true
+                      md: cool
+                      temp: 22
+                      fan: 2
+              atualizar:
+                summary: Atualizar rotina existente
+                value:
+                  id: "3044d20e-a02c-4a9a-8508-25f92599622e"
+                  name: "Turno da Noite (Atualizado)"
+                  en: false
+              reordenar:
+                summary: Mover rotina para a primeira posição
+                value:
+                  id: "3044d20e-a02c-4a9a-8508-25f92599622e"
+                  idx: 0
+              sincronizar:
+                summary: 🔑 Substituição completa — Uso interno
+                value:
+                  - id: "3044d20e-a02c-4a9a-8508-25f92599622e"
+                    name: "Turno da Noite"
+                    en: true
+                    ex: false
+                    cond:
+                      op: AND
+                      tr:
+                        - tp: daily
+                          val: 1320
+                    act:
+                      - cmd: AC_SET
+                        pwr: true
+                        md: cool
+                        temp: 22
+                        fan: 2
+                  - name: "Modo Econômico"
+                    en: true
+                    ex: false
+                    cond:
+                      op: AND
+                      tr:
+                        - tp: daily
+                          val: 480
+                    act:
+                      - cmd: AC_SET
+                        pwr: true
+                        md: cool
+                        temp: 24
+                        fan: 1
       responses:
         "200":
-          description: Operação executada com sucesso.
+          description: Operação(ões) executada(s) com sucesso.
           content:
             application/json:
               schema:
@@ -501,34 +570,145 @@ paths:
                 properties:
                   success:
                     type: boolean
-                    description: Indica se todas as operações foram processadas.
+                    description: Indica se todas as operações foram processadas com sucesso.
                     example: true
+        "400":
+          description: Requisição inválida — JSON malformado ou campos obrigatórios ausentes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalido:
+                  value:
+                    error: INVALID_REQUEST
+        "403":
+          description: Token ausente, inválido ou sem permissão suficiente (`manager`/`owner` obrigatório).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                negado:
+                  value:
+                    error: AUTH_ERROR
+        "503":
+          description: O dispositivo está processando outra operação de automação. Tente novamente em instantes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                ocupado:
+                  value:
+                    error: SYSTEM_BUSY
     get:
       tags:
         - Rotinas
-      summary: Lista rotinas 🚩Adicionado
+      summary: Lista Rotinas 🚩Adicionado
       description: |
-        Retorna todas as rotinas configuradas no dispositivo.
+        Retorna todas as rotinas configuradas no dispositivo, na ordem em que estão armazenadas.
 
-        > ⚠️ Opcionalmente pode ser informado o parâmetro `id`  para retornar apenas uma rotina específica.
+        > ⚠️ O parâmetro `id` pode ser informado para filtrar uma rotina específica. A resposta **sempre é um array** — com um único elemento quando `id` é fornecido e a rotina existe, ou vazio caso não seja encontrada.
       security:
         - bearerAuth: []
       parameters:
         - name: id
           in: query
           required: false
-          description: Identificador da rotina.
+          description: Identificador da rotina. Quando informado, retorna array com apenas a rotina correspondente.
           schema:
-            type: integer
+            type: string
+            format: uuid
       responses:
         "200":
-          description: Lista de rotinas.
+          description: Lista de rotinas (zero ou mais elementos).
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/Routine"
+        "403":
+          description: Token de autenticação ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                negado:
+                  value:
+                    error: AUTH_ERROR
+    delete:
+      tags:
+        - Rotinas
+      summary: Remove Rotina(s) 🚩Adicionado
+      description: |
+        Remove uma ou mais rotinas do dispositivo pelo identificador.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/RoutineDeleteRequest"
+                - type: array
+                  description: Lista de rotinas a remover em lote.
+                  items:
+                    $ref: "#/components/schemas/RoutineDeleteRequest"
+            examples:
+              unica:
+                summary: Remover uma rotina
+                value:
+                  id: "3044d20e-a02c-4a9a-8508-25f92599622e"
+              multiplas:
+                summary: Remover múltiplas rotinas em lote
+                value:
+                  - id: "3044d20e-a02c-4a9a-8508-25f92599622e"
+                  - id: "7a1b2c3d-4e5f-6789-abcd-ef0123456789"
+      responses:
+        "200":
+          description: Rotina(s) removida(s) com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "400":
+          description: Requisição inválida — `id` ausente ou formato incorreto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalido:
+                  value:
+                    error: INVALID_REQUEST
+        "403":
+          description: Token ausente, inválido ou sem permissão suficiente (`manager`/`owner` obrigatório).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                negado:
+                  value:
+                    error: AUTH_ERROR
+        "503":
+          description: O dispositivo está processando outra operação. Tente novamente em instantes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                ocupado:
+                  value:
+                    error: SYSTEM_BUSY
 
   /access/vouchers:
     post:
@@ -1065,6 +1245,40 @@ components:
           type: integer
           description: Temperatura alvo.
           example: 18
+
+    RoutineDeleteRequest:
+      type: object
+      description: Solicitação de remoção de uma rotina pelo identificador.
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único da rotina a ser removida.
+          example: "3044d20e-a02c-4a9a-8508-25f92599622e"
+
+    RoutineReorderRequest:
+      type: object
+      description: |
+        Solicitação de reordenação de uma rotina na lista.  
+        O dispositivo move a rotina identificada por `id` para a posição `idx`, deslocando as demais.
+      required:
+        - id
+        - idx
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único da rotina a ser reordenada.
+          example: "3044d20e-a02c-4a9a-8508-25f92599622e"
+        idx:
+          type: integer
+          minimum: 0
+          description: |
+            Índice de destino (0-based) para onde a rotina deve ser movida na lista.  
+            Por exemplo, `idx: 0` move a rotina para o início da lista.
+          example: 0
 
     AccessRole:
       type: string
