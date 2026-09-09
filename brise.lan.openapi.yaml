@@ -644,7 +644,7 @@ paths:
         - Rotinas
       summary: Remove Rotina(s) 🚩Adicionado
       description: |
-        Remove uma ou mais rotinas do dispositivo pelo identificador.
+        Este endpoint permite apagar rotinas de automação do dispositivo. Você pode apagar apenas uma rotina ou várias de uma vez só, dependendo de como envia a requisição.
       security:
         - bearerAuth: []
       requestBody:
@@ -654,20 +654,28 @@ paths:
             schema:
               oneOf:
                 - $ref: "#/components/schemas/RoutineDeleteRequest"
+                - $ref: "#/components/schemas/RoutineDeleteMultipleRequest"
                 - type: array
-                  description: Lista de rotinas a remover em lote.
+                  description: Lista de identificadores únicos (UUID) das rotinas a remover em lote.
                   items:
-                    $ref: "#/components/schemas/RoutineDeleteRequest"
+                    type: string
+                    format: uuid
             examples:
               unica:
-                summary: Remover uma rotina
+                summary: Remover uma rotina (objeto com id)
                 value:
                   id: "3044d20e-a02c-4a9a-8508-25f92599622e"
-              multiplas:
-                summary: Remover múltiplas rotinas em lote
+              multiplas_obj:
+                summary: Remover múltiplas rotinas (objeto com ids)
                 value:
-                  - id: "3044d20e-a02c-4a9a-8508-25f92599622e"
-                  - id: "7a1b2c3d-4e5f-6789-abcd-ef0123456789"
+                  ids:
+                    - "3044d20e-a02c-4a9a-8508-25f92599622e"
+                    - "7a1b2c3d-4e5f-6789-abcd-ef0123456789"
+              multiplas_array:
+                summary: Remover múltiplas rotinas (array de strings)
+                value:
+                  - "3044d20e-a02c-4a9a-8508-25f92599622e"
+                  - "7a1b2c3d-4e5f-6789-abcd-ef0123456789"
       responses:
         "200":
           description: Rotina(s) removida(s) com sucesso.
@@ -1257,6 +1265,22 @@ components:
           format: uuid
           description: Identificador único da rotina a ser removida.
           example: "3044d20e-a02c-4a9a-8508-25f92599622e"
+
+    RoutineDeleteMultipleRequest:
+      type: object
+      description: Solicitação de remoção de múltiplas rotinas pelos identificadores.
+      required:
+        - ids
+      properties:
+        ids:
+          type: array
+          description: Lista de identificadores únicos das rotinas a serem removidas.
+          items:
+            type: string
+            format: uuid
+          example:
+            - "3044d20e-a02c-4a9a-8508-25f92599622e"
+            - "7a1b2c3d-4e5f-6789-abcd-ef0123456789"
 
     RoutineReorderRequest:
       type: object
