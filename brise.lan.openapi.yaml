@@ -57,6 +57,8 @@ tags:
       Permite gerar vouchers para conceder acesso a outros usuários e resgatar esses vouchers para obter acesso ao dispositivo.
   - name: Rotinas
     description: Gerenciamento de rotinas de automação executadas localmente pelo dispositivo.
+  - name: Logs
+    description: Consulta aos históricos de eventos, dados de utilização e registros de temperatura do dispositivo para fins de auditoria e rastreabilidade.
 
 paths:
   /network/status:
@@ -1140,6 +1142,59 @@ paths:
                   value:
                     error: USER_NOT_FOUND
 
+  /logs/events:
+    get:
+      tags:
+        - Logs
+      summary: Lista Eventos 🚩Adicionado
+      description: |
+        Retorna o histórico de eventos e ações executadas pelo ou através do dispositivo.
+        
+        > 💡 Sem parâmetros de filtro, a requisição retorna por padrão o histórico total do dispositivo, que corresponde aos últimos 100 eventos registrados.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Quantidade máxima de registros a retornar. O limite físico do dispositivo é tipicamente 100.
+          schema:
+            type: integer
+            default: 100
+        - name: since
+          in: query
+          required: false
+          description: Filtra registros gerados a partir deste timestamp UTC.
+          schema:
+            type: integer
+        - name: until
+          in: query
+          required: false
+          description: Filtra registros gerados até este timestamp UTC.
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de eventos registrados (Array de objetos EventLog).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventLog"
+        "401":
+          description: Token de autenticação ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: O usuário autenticado não possui permissão para acessar os logs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1159,6 +1214,37 @@ components:
           type: string
           description: Código de erro representando o tipo de falha da requisição.
           example: INVALID_REQUEST
+
+    EventLog:
+      type: object
+      description: Registro de evento de auditoria ou ação do dispositivo.
+      properties:
+        ts:
+          type: integer
+          description: Timestamp UTC de quando o evento ocorreu.
+          example: 1718293456
+        uts:
+          type: boolean
+          description: Untrusted Timestamp. Se `true`, indica que o relógio do dispositivo não estava sincronizado e não era confiável no momento do evento.
+          example: false
+        by:
+          type: string
+          description: Identificador de quem gerou o evento (usuário, automação, ou sistema).
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        code:
+          type: integer
+          description: Código identificador numérico do tipo de evento.
+          example: 105
+        args:
+          type: array
+          description: Lista de argumentos dinâmicos associados a este tipo de evento.
+          items:
+            type: string
+          example: ["22", "cool", "1"]
+        sync:
+          type: boolean
+          description: Se `true`, indica que este registro já foi sincronizado com a plataforma Cloud.
+          example: true
 
     Routine:
       type: object
