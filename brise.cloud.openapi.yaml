@@ -1,7 +1,7 @@
 openapi: 3.0.4
 info:
   title: Brise Cloud API
-  version: 3.0.3
+  version: 3.0.4
   contact:
     name: AGST
     email: ped@agst.com.br
@@ -102,6 +102,12 @@ tags:
   - name: Sistema
     description: |
       Operações de manutenção e controle do dispositivo Brise.
+  - name: Rotinas
+    description: |
+      Gerenciamento de rotinas de automação executadas localmente pelo dispositivo.
+  - name: Logs
+    description: |
+      Histórico de eventos e ações executadas pelo ou através do dispositivo.
 paths:
   /oauth/authorize:
     get:
@@ -967,7 +973,7 @@ paths:
     get:
       tags:
         - Usuários
-      summary: Obter perfil 🚩Adicionado
+      summary: Obter perfil
       description: |
         Retorna as informações do perfil do usuário autenticado.
 
@@ -1012,7 +1018,7 @@ paths:
     patch:
       tags:
         - Usuários
-      summary: Atualizar perfil ✏️Alterado
+      summary: Atualizar perfil
       description: |
         Permite que o usuário autenticado atualize suas próprias informações de perfil, como nome completo.
 
@@ -1062,7 +1068,7 @@ paths:
     delete:
       tags:
         - Usuários
-      summary: Excluir usuário 🚩Adicionado
+      summary: Excluir usuário
       description: |
         Exclui permanentemente a conta do usuário autenticado. Ação irreversível.
         Requer a senha atual via query parameter como prova de identidade.
@@ -1463,7 +1469,7 @@ paths:
     patch:
       tags:
         - Corporações
-      summary: Transferir corporação 🚩Adicionado
+      summary: Transferir corporação
       description: |
         Transfere a propriedade de uma corporação para outro usuário.
 
@@ -1548,7 +1554,7 @@ paths:
     delete:
       tags:
         - Corporações
-      summary: Excluir corporação 🚩Adicionado
+      summary: Excluir corporação
       description: |
         Exclui permanentemente uma corporação com anonimização imediata de dados. Esta ação é irreversível.
 
@@ -1916,14 +1922,14 @@ paths:
                     type: string
                     example: APPLICATION_ALREADY_EXISTS
 
-  /system/update/{device}:
+  /system/update_url/{device}:
     post:
       tags:
         - Sistema
-      summary: Atualização Download via Cloud 🔑
+      summary: Atualização Download 🔑🚩Adicionado
       description: |
-        Envia um comando para o dispositivo (identificado pelo número de série) para que ele baixe e instale uma atualização de firmware a partir de uma URL.
-        O Brise Cloud encaminhará esta solicitação ao dispositivo.
+        Envia-se a URL de um servidor remoto que contém o arquivo binário de firmware.  
+        O dispositivo fará o download do arquivo, verificará sua integridade, aplicará a atualização e reiniciará automaticamente.
 
         > ⚠️ **Privado**: Este endpoint é de uso interno e não deve ser divulgado na documentação pública.
       x-internal: true
@@ -1990,6 +1996,375 @@ paths:
                     example: DEVICE_NOT_FOUND
         "500":
           description: Erro ao processar o comando no servidor Cloud.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /automations/{device}:
+    post:
+      tags:
+        - Rotinas
+      summary: Cria, Edita ou Reordena Rotinas 🔑🚩Adicionado
+      description: |
+        Encaminha uma solicitação ao dispositivo para realizar operações sobre rotinas de automação.
+
+        O comportamento depende do tipo de corpo enviado:
+
+        **Objeto único** — executa uma operação pontual sobre uma rotina:
+
+        | Conteúdo do objeto | Operação |
+        |--------------------|----------|
+        | Sem `id` (ou `id` inexistente no dispositivo) | **Cria** nova rotina — o dispositivo atribui um `id` automaticamente |
+        | `id` existente + outros campos | **Atualiza** a rotina correspondente |
+        | `id` + `idx` | **Reordena** — move a rotina para a posição `idx` (0-based) na lista |
+
+        > 🔑 **Privado**: O envio de um array é de uso interno e não deve ser divulgado na documentação pública.
+        > O envio de um array **sobrescreve** todas as rotinas existentes no dispositivo. Use com cautela.
+      x-internal: false
+      operationId: automationsPost
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: device
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Número de série do dispositivo a ser configurado.
+          example: "200000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/Routine"
+                - $ref: "#/components/schemas/RoutineReorderRequest"
+                - type: array
+                  description: |
+                    🔑 Uso interno. Substituição completa da lista de rotinas do dispositivo.
+                    Todas as rotinas existentes serão removidas e substituídas pelas do array.
+                  items:
+                    $ref: "#/components/schemas/Routine"
+            examples:
+              criar:
+                summary: Criar nova rotina
+                value:
+                  name: "Turno da Noite"
+                  en: true
+                  ex: false
+                  cond:
+                    op: AND
+                    tr:
+                      - tp: daily
+                        val: 1320
+                  act:
+                    - cmd: AC_SET
+                      pwr: true
+                      md: cool
+                      temp: 22
+                      fan: 2
+              atualizar:
+                summary: Atualizar rotina existente
+                value:
+                  id: "3044d20e-a02c-4a9a-8508-25f92599622e"
+                  name: "Turno da Noite (Atualizado)"
+                  en: false
+              reordenar:
+                summary: Mover rotina para a primeira posição
+                value:
+                  id: "3044d20e-a02c-4a9a-8508-25f92599622e"
+                  idx: 0
+              sincronizar:
+                summary: 🔑 Substituição completa — Uso interno
+                value:
+                  - id: "3044d20e-a02c-4a9a-8508-25f92599622e"
+                    name: "Turno da Noite"
+                    en: true
+                    ex: false
+                    cond:
+                      op: AND
+                      tr:
+                        - tp: daily
+                          val: 1320
+                    act:
+                      - cmd: AC_SET
+                        pwr: true
+                        md: cool
+                        temp: 22
+                        fan: 2
+                  - name: "Modo Econômico"
+                    en: true
+                    ex: false
+                    cond:
+                      op: AND
+                      tr:
+                        - tp: daily
+                          val: 480
+                    act:
+                      - cmd: AC_SET
+                        pwr: true
+                        md: cool
+                        temp: 24
+                        fan: 1
+      responses:
+        "200":
+          description: Operação(ões) executada(s) com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica se todas as operações foram processadas com sucesso.
+                    example: true
+        "400":
+          description: Requisição inválida — JSON malformado ou campos obrigatórios ausentes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Token de autenticação Cloud ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Usuário sem permissão suficiente sobre o dispositivo (`manager`/`owner` obrigatório).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Dispositivo não encontrado ou não cadastrado na conta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: O dispositivo está offline ou processando outra operação (`SYSTEM_BUSY`). Tente novamente em instantes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      tags:
+        - Rotinas
+      summary: Lista Rotinas 🚩Adicionado
+      description: |
+        Retorna todas as rotinas configuradas no dispositivo, na ordem de prioridade, da mais alta para a mais baixa.
+
+        > ⚠️ O parâmetro `id` pode ser informado para filtrar uma rotina específica. A resposta **sempre é um array** — com um único elemento quando `id` é fornecido e a rotina existe, ou vazio caso não seja encontrada.
+      operationId: automationsGet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: device
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Número de série do dispositivo.
+          example: "200000"
+        - name: id
+          in: query
+          required: false
+          description: Identificador da rotina. Quando informado, retorna array com apenas a rotina correspondente.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Lista de rotinas (zero ou mais elementos).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Routine"
+        "401":
+          description: Token de autenticação Cloud ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Usuário sem permissão para acessar o dispositivo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Dispositivo não encontrado ou não cadastrado na conta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: O dispositivo está offline ou indisponível.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - Rotinas
+      summary: Remove Rotina(s) 🚩Adicionado
+      description: |
+        Permite apagar rotinas de automação do dispositivo. Você pode apagar apenas uma rotina ou várias de uma vez só, dependendo de como envia a requisição.
+      operationId: automationsDelete
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: device
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Número de série do dispositivo.
+          example: "200000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: "#/components/schemas/RoutineDeleteRequest"
+                - $ref: "#/components/schemas/RoutineDeleteMultipleRequest"
+                - type: array
+                  description: Lista de identificadores únicos (UUID) das rotinas a remover em lote.
+                  items:
+                    type: string
+                    format: uuid
+            examples:
+              unica:
+                summary: Remover uma rotina (objeto com id)
+                value:
+                  id: "3044d20e-a02c-4a9a-8508-25f92599622e"
+              multiplas_obj:
+                summary: Remover múltiplas rotinas (objeto com ids)
+                value:
+                  ids:
+                    - "3044d20e-a02c-4a9a-8508-25f92599622e"
+                    - "7a1b2c3d-4e5f-6789-abcd-ef0123456789"
+              multiplas_array:
+                summary: Remover múltiplas rotinas (array de strings)
+                value:
+                  - "3044d20e-a02c-4a9a-8508-25f92599622e"
+                  - "7a1b2c3d-4e5f-6789-abcd-ef0123456789"
+      responses:
+        "200":
+          description: Rotina(s) removida(s) com sucesso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "400":
+          description: Requisição inválida — `id` ausente ou formato incorreto.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Token de autenticação Cloud ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Usuário sem permissão suficiente sobre o dispositivo (`manager`/`owner` obrigatório).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Dispositivo não encontrado ou não cadastrado na conta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: O dispositivo está offline ou processando outra operação (`SYSTEM_BUSY`). Tente novamente em instantes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /logs/events/{device}:
+    get:
+      tags:
+        - Logs
+      summary: Lista Eventos 🚩Adicionado
+      description: |
+        Retorna o histórico de eventos e ações executadas pelo ou através do dispositivo.
+
+        > 💡 Sem parâmetros de filtro, a requisição retorna por padrão os últimos 100 eventos registrados.
+      operationId: logsEventsGet
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: device
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Número de série do dispositivo.
+          example: "200000"
+        - name: limit
+          in: query
+          required: false
+          description: Quantidade máxima de registros a retornar.
+          schema:
+            type: integer
+            default: 100
+        - name: since
+          in: query
+          required: false
+          description: Filtra registros gerados a partir deste timestamp UTC.
+          schema:
+            type: integer
+        - name: until
+          in: query
+          required: false
+          description: Filtra registros gerados até este timestamp UTC.
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de eventos registrados (Array de objetos EventLog).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventLog"
+        "401":
+          description: Token de autenticação Cloud ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: O usuário autenticado não possui permissão para acessar os logs do dispositivo.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Dispositivo não encontrado ou não cadastrado na conta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: O dispositivo está offline ou indisponível no momento.
           content:
             application/json:
               schema:
@@ -2077,3 +2452,178 @@ components:
         - refresh_token
         - client_id
         - client_secret
+
+    EventLog:
+      type: object
+      description: Registro de evento de auditoria ou ação do dispositivo.
+      properties:
+        ts:
+          type: integer
+          description: Timestamp UTC de quando o evento ocorreu.
+          example: 1718293456
+        uts:
+          type: boolean
+          description: Untrusted Timestamp. Se `true`, indica que o relógio do dispositivo não estava sincronizado e não era confiável no momento do evento.
+          example: false
+        by:
+          type: string
+          description: Identificador de quem gerou o evento (usuário, automação, ou sistema).
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        code:
+          type: integer
+          description: Código identificador numérico do tipo de evento.
+          example: 105
+        args:
+          type: array
+          description: Lista de argumentos dinâmicos associados a este tipo de evento.
+          items:
+            type: string
+          example: ["22", "cool", "1"]
+        sync:
+          type: boolean
+          description: Se `true`, indica que este registro já foi sincronizado com a plataforma Cloud.
+          example: true
+
+    Routine:
+      type: object
+      description: Definição completa de uma rotina de automação.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: |
+            Identificador único da rotina.  
+            Quando omitido em uma criação, o dispositivo atribui automaticamente um novo identificador.
+          example: "3044d20e-a02c-4a9a-8508-25f92599622e"
+
+        name:
+          type: string
+          description: Nome amigável da rotina.
+          example: "Turno da Noite"
+
+        en:
+          type: boolean
+          description: Define se a rotina está habilitada (enabled).
+          example: true
+
+        ex:
+          type: boolean
+          description: |
+            Quando verdadeiro, impede que outras rotinas sejam executadas simultaneamente (exclusive).
+          example: false
+
+        cond:
+          $ref: "#/components/schemas/RoutineConditions"
+
+        act:
+          type: array
+          description: Lista de ações executadas quando as condições forem satisfeitas.
+          items:
+            $ref: "#/components/schemas/RoutineAction"
+
+    RoutineConditions:
+      type: object
+      description: Conjunto de condições necessárias para execução da rotina.
+      properties:
+        op:
+          type: string
+          description: Operador lógico utilizado para combinar os gatilhos.
+          enum:
+            - AND
+            - OR
+
+        tr:
+          type: array
+          description: Lista de gatilhos avaliados pela rotina.
+          items:
+            $ref: "#/components/schemas/RoutineTrigger"
+
+    RoutineTrigger:
+      type: object
+      description: Gatilho que compõe a condição da rotina.
+      properties:
+        tp:
+          type: string
+          description: Tipo do gatilho.
+          example: "boot"
+        val:
+          type: integer
+          description: Valor associado ao gatilho.
+          example: 0
+
+    RoutineAction:
+      type: object
+      description: |
+        Ação executada quando a condição da rotina for satisfied.
+        Os campos específicos dependem do comando informado em `cmd`.
+      properties:
+        cmd:
+          type: string
+          description: Comando a ser executado.
+          example: "AC_SET"
+        fan:
+          type: integer
+          description: Velocidade do ventilador.
+          example: 1
+        md:
+          type: string
+          description: Modo de operação.
+          example: "cool"
+        pwr:
+          type: boolean
+          description: Estado da alimentação (ligado/desligado).
+          example: false
+        temp:
+          type: integer
+          description: Temperatura alvo.
+          example: 18
+
+    RoutineDeleteRequest:
+      type: object
+      description: Solicitação de remoção de uma rotina pelo identificador.
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único da rotina a ser removida.
+          example: "3044d20e-a02c-4a9a-8508-25f92599622e"
+
+    RoutineDeleteMultipleRequest:
+      type: object
+      description: Solicitação de remoção de múltiplas rotinas pelos identificadores.
+      required:
+        - ids
+      properties:
+        ids:
+          type: array
+          description: Lista de identificadores únicos das rotinas a serem removidas.
+          items:
+            type: string
+            format: uuid
+          example:
+            - "3044d20e-a02c-4a9a-8508-25f92599622e"
+            - "7a1b2c3d-4e5f-6789-abcd-ef0123456789"
+
+    RoutineReorderRequest:
+      type: object
+      description: |
+        Solicitação de reordenação de uma rotina na lista.  
+        O dispositivo move a rotina identificada por `id` para a posição `idx`, deslocando as demais.
+      required:
+        - id
+        - idx
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único da rotina a ser reordenada.
+          example: "3044d20e-a02c-4a9a-8508-25f92599622e"
+        idx:
+          type: integer
+          minimum: 0
+          description: |
+            Índice de destino (0-based) para onde a rotina deve ser movida na lista.  
+            Por exemplo, `idx: 0` move a rotina para o início da lista.
+          example: 0
