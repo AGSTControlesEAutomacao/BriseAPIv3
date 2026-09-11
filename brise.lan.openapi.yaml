@@ -369,8 +369,8 @@ paths:
         - Sistema
       summary: Atualização Upload 🔑🚩Adicionado
       description: |
-        Recebe um arquivo binário contendo o firmware a ser instalado no dispositivo.
-        Após o recebimento bem-sucedido, o arquivo será verificado, implementado e o dispositivo será reiniciado automaticamente.
+        Envia o arquivo binário contendo o firmware a ser instalado no dispositivo.  
+        Após o recebimento bem-sucedido, o arquivo terá sua integridade verificada, a atualização será aplicada e o dispositivo reiniciará automaticamente.
 
         > ⚠️ **Privado**: Este endpoint é de uso interno e não deve ser divulgado na documentação pública.
       x-internal: true
@@ -417,7 +417,7 @@ paths:
         - Sistema
       summary: Atualização Download 🔑🚩Adicionado
       description: |
-        Recebe a URL de um servidor remoto que contém o arquivo binário de firmware. 
+        Envia-se a URL de um servidor remoto que contém o arquivo binário de firmware.  
         O dispositivo fará o download do arquivo, verificará sua integridade, aplicará a atualização e reiniciará automaticamente.
 
         > ⚠️ **Privado**: Este endpoint é de uso interno e não deve ser divulgado na documentação pública.
